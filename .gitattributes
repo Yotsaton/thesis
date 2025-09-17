@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+# Windows scripts ที่ต้อง CRLF จริง ๆ
+*.bat eol=crlf
+*.cmd eol=crlf
+*.ps1 eol=crlf
+
+# Shell script ควรเป็น LF
+*.sh eol=lf
