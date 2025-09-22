@@ -1,4 +1,4 @@
-// src/user/forgetPass.ts
+// src/authentication/function/forgetPass.ts
 import 'dotenv/config';
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';

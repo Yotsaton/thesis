@@ -1,4 +1,4 @@
-// src/user/index.ts
+// src/authentication/index.ts
 
 // function export
 export * from './function/changePass'

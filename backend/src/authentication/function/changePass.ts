@@ -1,4 +1,4 @@
-// src/user/changePass.ts
+// src/authentication/function/changePass.ts
 import 'dotenv/config';
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';

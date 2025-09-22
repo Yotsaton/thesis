@@ -5,8 +5,6 @@ export type CreateTripParams = {
   header?: string | null;                 // ชื่อทริป (อนุญาตให้ว่างได้)
   start_plan: string | Date;              // วันเริ่ม (date)
   end_plan: string | Date;                // วันจบ (date)
-  status?: string;                        // ไม่ส่งมาก็จะเป็น "planning"
-  id?: string;                            // ถ้าอยากกำหนดเองได้, ปกติปล่อยให้ gen อัตโนมัติ
 };
 
 export type Accessor = {

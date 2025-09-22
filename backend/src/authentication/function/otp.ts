@@ -1,4 +1,4 @@
-// src/user/otp.ts
+// src/authentication/function/otp.ts
 import 'dotenv/config';
 import { Request, Response } from 'express';
 import nodemailer from 'nodemailer';

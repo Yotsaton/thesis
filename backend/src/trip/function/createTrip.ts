@@ -1,7 +1,6 @@
 // src/trip/function/createTrip.ts
-import { db } from "../../database/db-promise";              // ปรับ path ให้ตรงโปรเจกต์คุณ
-import type { trip } from "../../database/database.types";   // ใช้ type ที่คุณให้มา
-import crypto from "crypto";
+import { db } from "../../database/db-promise";
+import type { trip } from "../../database/database.types";
 
 import { CreateTripParams } from "../types/type";
 import { toDateOnly } from "./toDateOnly";
@@ -11,8 +10,7 @@ import { toDateOnly } from "./toDateOnly";
  * - คืนค่ารายการทริปที่ถูกสร้าง (type: trip)
  */
 export async function createTrip(params: CreateTripParams): Promise<trip> {
-  const id = params.id ?? crypto.randomUUID();
-  const status = params.status ?? "planning";
+  const status = "planning";
   const header = params.header ?? null;
 
   const start = toDateOnly(params.start_plan);
@@ -27,8 +25,8 @@ export async function createTrip(params: CreateTripParams): Promise<trip> {
     // ใช้ db.one เพื่อคืนค่าบรรทัดเดียว พร้อม map เป็น trip
     const row = await db.one<trip>(
       `
-      INSERT INTO public.trip (id, username, start_plan, end_plan, status, header)
-      VALUES ($[id], $[username], $[start], $[end], $[status], $[header])
+      INSERT INTO public.trip (username, start_plan, end_plan, status, header)
+      VALUES ($[username], $[start], $[end], $[status], $[header])
       RETURNING
         id,
         username,
@@ -40,7 +38,6 @@ export async function createTrip(params: CreateTripParams): Promise<trip> {
         updated_at
       `,
       {
-        id,
         username: params.username,
         start,
         end,
@@ -50,7 +47,6 @@ export async function createTrip(params: CreateTripParams): Promise<trip> {
     );
 
     // หมายเหตุ: driver ปกติจะให้ชนิด date/timestamp มาเป็น string;
-    // หากในโปรเจกต์คุณพาร์เซอร์ใน db-promise.ts ตั้งให้เป็น Date แล้วอยู่แล้ว ก็ไม่ต้องแปลงอะไรเพิ่ม
     return row;
   } catch (err: any) {
     // แปลง error จาก Postgres ให้อ่านง่ายขึ้น

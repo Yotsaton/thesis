@@ -1,4 +1,4 @@
-// src/user/function/logout.ts
+// src/authentication/function/logout.ts
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';
 

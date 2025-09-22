@@ -1,4 +1,4 @@
-// src/user/me.ts
+// src/authentication/function/me.ts
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';
 import type { users } from '../../database/database.types';
