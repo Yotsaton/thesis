@@ -1,4 +1,4 @@
-// src/api/cProject.api.ts
+// src/api/trip.api.ts
 import { Router, Request, Response } from "express";
 import {requireAuth} from '../middleware/requireAuth'
 import { withAuth } from "../middleware/withAuth";
