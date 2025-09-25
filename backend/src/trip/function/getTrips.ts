@@ -2,6 +2,7 @@
 import { db } from "../../database/db-promise";
 import type { trip } from "../../database/database.types";
 import { Accessor, ListTripsOptions } from "../types/type";
+import { th } from "zod/v4/locales";
 
 function toDateOnly(input?: string | Date): string | undefined {
   if (!input) return undefined;
@@ -108,4 +109,33 @@ export async function listTripsAuthorized(
 export async function getTrips(accessor: Accessor, opts?: ListTripsOptions) {
   return listTripsAuthorized(accessor, opts);
 }
+/** ดึงข้อมูล trip เดียวตาม trip_id */
+export async function getTrip(accessor: Accessor, trip_id: string): Promise<trip> {
+  const isAdmin = Boolean(accessor.is_super_user || accessor.is_staff_user);
 
+  const trip = await db.oneOrNone<trip>(
+    `
+    SELECT
+      t.id,
+      t.username,
+      t.start_plan,
+      t.end_plan,
+      t.status,
+      t.created_at,
+      t.header,
+      t.updated_at
+    FROM public.trip t
+    WHERE t.id = $[trip_id] AND ($[isAdmin] OR t.username = $[req_username])
+    `,
+    { trip_id, isAdmin, req_username: accessor.username }
+  );
+
+  if (!trip) throw new Error("Trip not found");
+
+  // ตรวจสอบสิทธิ์เข้าถึง
+  if (!isAdmin && trip.username !== accessor.username) {
+    throw new Error("Access denied");
+  }
+
+  return trip;
+}

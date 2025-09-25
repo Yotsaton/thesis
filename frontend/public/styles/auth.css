@@ -1,0 +1,341 @@
+/* styles/auth.css */
+
+/* --- GENERAL & FONT RESET --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #F5F5F5;
+}
+
+/* --- MAIN CONTAINER --- */
+.container {
+    position: relative;
+    width: 850px;
+    height: 550px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+    overflow: hidden;
+}
+
+/* --- FORM BOXES (Login & Register ONLY) --- */
+.form-box {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 50px;
+    transition: opacity .4s ease-in-out, left .6s ease-in-out;
+    z-index: 10;
+}
+
+.form-box.login { left: 0; }
+.form-box.register { left: 100%; }
+
+/* --- Animation rules for Register/Login slide --- */
+.container.active .form-box.login { left: -100%; }
+.container.active .form-box.register { left: 50%; }
+
+/* --- DELETED old animation rules for OTP --- */
+
+/* --- FORM ELEMENTS --- */
+form { width: 100%; text-align: center; }
+h1 { font-size: 32px; margin-bottom: 20px; color: #333; }
+.input-box { position: relative; margin: 25px 0; }
+
+.input-box input {
+    width: 100%;
+    padding: 12px 45px 12px 15px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+.input-box input:focus { border-color: #739371; }
+
+.input-box i {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #888;
+}
+
+.forgot-link { margin: -10px 0 15px; text-align: right; }
+.forgot-link a { font-size: 14px; color: #555; text-decoration: none; }
+
+.btn {
+    width: 100%;
+    height: 48px;
+    background: #739371;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+.btn:hover { background: #557253; }
+
+/* --- TOGGLE OVERLAY PANEL --- */
+.toggle-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: all .6s ease-in-out;
+    border-radius: 15px 0 0 15px;
+    z-index: 100;
+}
+
+.toggle {
+    background: #739371;
+    color: #fff;
+    position: relative;
+    height: 100%;
+    left: -100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: all .6s ease-in-out;
+}
+
+.toggle-panel {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 40px;
+    transform: translateX(0);
+    transition: all .6s ease-in-out;
+    z-index: 1;
+}
+
+/* --- Register/Login Toggle Animation --- */
+.container.active .toggle-container { 
+    transform: translateX(-100%); 
+    border-radius: 0 15px 15px 0; 
+}
+.container.active .toggle { 
+    transform: translateX(50%); 
+}
+.toggle-left { 
+    transform: translateX(-200%); 
+}
+.container.active .toggle-left { 
+    transform: translateX(0); 
+}
+.toggle-right { 
+    right: 0; transform: translateX(0); 
+}
+.container.active .toggle-right { 
+    transform: translateX(200%); 
+}
+
+/* === CONSOLIDATED LOGIC FOR EXPANDING PANELS (Forgot, Success, OTP) === */
+
+/* 1. Hide form boxes when any full-panel view is active */
+.container.active-forgot .form-box,
+.container.active-success .form-box,
+.container.active-otp .form-box {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 2. Prepare all new panels to be hidden initially */
+.toggle-panel-forgot, 
+.toggle-panel-success,
+.toggle-panel-otp {
+    opacity: 0;
+    transition: opacity .3s ease-in-out .3s;
+    pointer-events: none;
+}
+
+/* 3. Expand the toggle container for all full-panel views */
+.container.active-forgot .toggle-container,
+.container.active-success .toggle-container,
+.container.active-otp .toggle-container {
+    width: 100%;
+    left: 0;
+    transform: translateX(0);
+    border-radius: 20px;
+}
+
+/* 4. Slide the inner toggle to reveal the left-side content for all full-panel views */
+.container.active-forgot .toggle,
+.container.active-success .toggle,
+.container.active-otp .toggle {
+    transform: translateX(50%);
+}
+
+/* 5. Hide the original toggle panels (Welcome/Hello) for all full-panel views */
+.container.active-forgot .toggle-left,
+.container.active-forgot .toggle-right,
+.container.active-success .toggle-left,
+.container.active-success .toggle-right,
+.container.active-otp .toggle-left,
+.container.active-otp .toggle-right {
+    transform: translateX(200%) !important;
+    opacity: 0;
+}
+
+/* 6. Show the correct active panel and raise its z-index */
+.container.active-forgot .toggle-panel-forgot { opacity: 1; pointer-events: all; }
+.container.active-success .toggle-panel-forgot { opacity: 0; pointer-events: none; }
+.container.active-success .toggle-panel-success { opacity: 1; pointer-events: all; }
+.container.active-otp .toggle-panel-otp { opacity: 1; pointer-events: all; }
+
+.container.active .toggle-left,
+.container.active-forgot .toggle-panel-forgot,
+.container.active-success .toggle-panel-success,
+.container.active-otp .toggle-panel-otp {
+    z-index: 2;
+}
+
+
+.toggle-panel p { font-size: 14px; line-height: 1.5; margin: 20px 0; }
+.toggle-panel .btn { background: transparent; border: 2px solid #fff; }
+.toggle-panel .btn:hover { background: #fff; color: #739371; }
+
+
+/* --- OTP FORM STYLES --- */
+.otp-input-container { 
+    display: flex; 
+    justify-content: center; 
+    gap: 10px; 
+    margin: 20px 0; 
+}
+
+.otp-input { 
+    width: 45px; 
+    height: 55px; 
+    text-align: center; 
+    font-size: 24px; 
+    background-color: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 6px;
+}
+
+.validate-btn { 
+    margin-bottom: 15px; 
+}
+
+.resend-btn { 
+    background: transparent; 
+    border: 2px solid #fff;
+    color: #fff;
+    font-weight: 600; 
+}
+.resend-btn:hover {
+    background: #fff;
+    color: #739371;
+}
+.resend-btn:disabled { 
+    background-color: transparent;
+    border-color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.5);
+    cursor: not-allowed; 
+}
+
+.otp-timer { 
+    font-size: 14px; 
+    margin-top: 20px; 
+    color: #eee; 
+}
+.otp-timer #timer { 
+    color: #fff;
+    font-weight: bold; 
+}
+
+/* --- STYLES FOR RESET PASSWORD PAGE --- */
+.reset-container {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    padding: 40px 50px;
+    margin: 20px;
+}
+
+#form-message {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+}
+#form-message.error {
+    color: #d93025;
+    font-weight: 500;
+}
+#form-message.success {
+    color: #739371;
+    font-weight: 500;
+}
+
+#login-link {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    color: #739371;
+    font-weight: 600;
+}
+
+/* --- STYLES FOR PASSWORD VALIDATOR --- */
+.password-validator {
+    text-align: left;
+    margin-top: -15px;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.password-validator ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.password-validator li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #888;
+    transition: color 0.3s ease;
+}
+.password-validator li span::before {
+    content: '○';
+    font-weight: bold;
+}
+.password-validator li.valid {
+    color: #739371;
+}
+.password-validator li.valid span::before {
+    content: '✓';
+}

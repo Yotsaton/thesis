@@ -1,14 +1,24 @@
 // src/trip/function/getTrip.api.ts
 import {type Response } from "express";
-import {AuthenticatedRequest, ListQuerySchema, type ListQueryParsed} from "../types/api.type";
-import { getTrips } from "./getTrips";
+import {AuthenticatedRequest, ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.type";
+import { getTrips, getTrip} from "./getTrips";
 import { Accessor, ListTripsOptions } from "../types/type";
 import { success } from "zod";
 
 /**
- * GET /api/v1/trips
+ * GET /api/v1/auth/trip
  * ดึงรายการทริปของผู้ใช้ที่ล็อกอิน (ยึด username จาก req.auth)
- * ถ้าเป็น admin สามารถระบุ ?username=alice หรือ ?username=alice,bob เพื่อค้นหาได้
+ * body = {
+ *   q?: string,
+ *   status?: string,
+ *   from?: Date,
+ *   to?: Date,
+ *   page?: number ?? 1,
+ *   page_size?: number ?? 20,
+ *   username?: string, // สำหรับ admin ค้นหาโดย username (รองรับ "alice,bob")
+ *   sort?: string,     // "col:dir" เช่น "created_at:desc"
+ * }
+
  */
 export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -72,5 +82,52 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
     return res.status(500).json({ 
       success: false,
       error: msg });
+  }
+};
+/**
+ * GET /api/v1/auth/trip/:trip_id
+ * ดึงข้อมูลทริปเดียวตาม trip_id (ยึด username จาก req.auth)
+ */
+
+export const getTripApi = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { trip_id } = ParamSchema.parse(req.params);
+    const auth: Accessor = req.auth;
+
+    if (!trip_id) {
+      return res.status(400).json({
+        success: false,
+        error: "missing_trip_id",
+      });
+    }
+
+    const trip = await getTrip(auth, trip_id);
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        error: "trip_not_found",
+      });
+    }
+
+    // ตรวจสอบสิทธิ์: admin ดูได้ทุก trip, user ดูได้เฉพาะของตัวเอง
+    const isAdmin = !!(auth.is_super_user || auth.is_staff_user);
+    if (!isAdmin && trip.username !== auth.username) {
+      return res.status(403).json({
+        success: false,
+        error: "forbidden",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: trip,
+    });
+  } catch (err: any) {
+    const msg = typeof err?.message === "string" ? err.message : "unexpected_error";
+    return res.status(500).json({
+      success: false,
+      error: msg,
+    });
   }
 };

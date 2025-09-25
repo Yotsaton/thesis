@@ -1,0 +1,182 @@
+[
+  {
+    "place_id": "ChIJ7a_-b-yZ4jARkeo-b_o-b_o",
+    "name_th": "วัดพระแก้ว",
+    "province": "กรุงเทพมหานคร",
+    "lat": 13.7514,
+    "lng": 100.4925,
+    "rating": 4.7,
+    "rating_count": 25000
+  },
+  {
+    "place_id": "ChIJyX4z-O-Z4jARU_T-d_o-d_o",
+    "name_th": "ไอคอนสยาม",
+    "province": "กรุงเทพมหานคร",
+    "lat": 13.7266,
+    "lng": 100.5105,
+    "rating": 4.6,
+    "rating_count": 75000
+  },
+  {
+    "place_id": "ChIJ_e_e-d-a5jARV_T-d_o-d_o",
+    "name_th": "ตลาดน้ำดำเนินสะดวก",
+    "province": "ราชบุรี",
+    "lat": 13.5188,
+    "lng": 99.9592,
+    "rating": 4.1,
+    "rating_count": 18000
+  },
+  {
+    "place_id": "ChIJ-f_f-a-f5jARe_T-d_o-d_o",
+    "name_th": "อุทยานประวัติศาสตร์พระนครศรีอยุธยา",
+    "province": "พระนครศรีอยุธยา",
+    "lat": 14.3562,
+    "lng": 100.5681,
+    "rating": 4.7,
+    "rating_count": 22000
+  },
+  {
+    "place_id": "ChIJgW_g-g-h4jARU_T-d_o-d_o",
+    "name_th": "วัดพระธาตุดอยสุเทพ",
+    "province": "เชียงใหม่",
+    "lat": 18.805,
+    "lng": 98.9216,
+    "rating": 4.8,
+    "rating_count": 30000
+  },
+  {
+    "place_id": "ChIJ_h_h-h-i4jARe_T-d_o-d_o",
+    "name_th": "ถนนคนเดินท่าแพ",
+    "province": "เชียงใหม่",
+    "lat": 18.7877,
+    "lng": 98.9931,
+    "rating": 4.4,
+    "rating_count": 21000
+  },
+  {
+    "place_id": "ChIJkZ_k-k-l4jARU_T-d_o-d_o",
+    "name_th": "ปาย",
+    "province": "แม่ฮ่องสอน",
+    "lat": 19.361,
+    "lng": 98.4398,
+    "rating": 4.5,
+    "rating_count": 15000
+  },
+  {
+    "place_id": "ChIJmX_m-m-n4jARe_T-d_o-d_o",
+    "name_th": "อ่าวมาหยา",
+    "province": "กระบี่",
+    "lat": 7.677,
+    "lng": 98.7663,
+    "rating": 4.6,
+    "rating_count": 3500
+  },
+  {
+    "place_id": "ChIJqY_q-q-r4jARU_T-d_o-d_o",
+    "name_th": "หาดไร่เลย์",
+    "province": "กระบี่",
+    "lat": 8.0121,
+    "lng": 98.8384,
+    "rating": 4.7,
+    "rating_count": 9000
+  },
+  {
+    "place_id": "ChIJvX_v-v-s4jARe_T-d_o-d_o",
+    "name_th": "หาดป่าตอง",
+    "province": "ภูเก็ต",
+    "lat": 7.8953,
+    "lng": 98.295,
+    "rating": 4.3,
+    "rating_count": 12000
+  },
+  {
+    "place_id": "ChIJwZ_w-w-t4jARU_T-d_o-d_o",
+    "name_th": "วัดฉลอง",
+    "province": "ภูเก็ต",
+    "lat": 7.8471,
+    "lng": 98.3372,
+    "rating": 4.6,
+    "rating_count": 11000
+  },
+  {
+    "place_id": "ChIJxY_x-x-u4jARe_T-d_o-d_o",
+    "name_th": "เมืองเก่าภูเก็ต",
+    "province": "ภูเก็ต",
+    "lat": 7.8845,
+    "lng": 98.3912,
+    "rating": 4.5,
+    "rating_count": 13500
+  },
+  {
+    "place_id": "ChIJyZ_y-y-v4jARU_T-d_o-d_o",
+    "name_th": "แหลมพรหมเทพ",
+    "province": "ภูเก็ต",
+    "lat": 7.7602,
+    "lng": 98.3039,
+    "rating": 4.6,
+    "rating_count": 19000
+  },
+  {
+    "place_id": "ChIJzZ_z-z-w4jARe_T-d_o-d_o",
+    "name_th": "อุทยานประวัติศาสตร์สุโขทัย",
+    "province": "สุโขทัย",
+    "lat": 17.017,
+    "lng": 99.7037,
+    "rating": 4.8,
+    "rating_count": 14000
+  },
+  {
+    "place_id": "ChIJaA_a-a-x4jARU_T-d_o-d_o",
+    "name_th": "พัทยา",
+    "province": "ชลบุรี",
+    "lat": 12.9236,
+    "lng": 100.8825,
+    "rating": 4.4,
+    "rating_count": 50000
+  },
+  {
+    "place_id": "ChIJbB_b-b-y4jARe_T-d_o-d_o",
+    "name_th": "ปราสาทสัจธรรม",
+    "province": "ชลบุรี",
+    "lat": 12.973,
+    "lng": 100.8887,
+    "rating": 4.6,
+    "rating_count": 16000
+  },
+  {
+    "place_id": "ChIJcC_c-c-z4jARU_T-d_o-d_o",
+    "name_th": "เกาะเสม็ด",
+    "province": "ระยอง",
+    "lat": 12.5594,
+    "lng": 101.4503,
+    "rating": 4.5,
+    "rating_count": 8000
+  },
+  {
+    "place_id": "ChIJdD_d-d-04jARe_T-d_o-d_o",
+    "name_th": "อุทยานแห่งชาติเขาใหญ่",
+    "province": "นครราชสีมา",
+    "lat": 14.4387,
+    "lng": 101.3713,
+    "rating": 4.7,
+    "rating_count": 23000
+  },
+  {
+    "place_id": "ChIJeE_e-e-14jARU_T-d_o-d_o",
+    "name_th": "เกาะสมุย",
+    "province": "สุราษฎร์ธานี",
+    "lat": 9.501,
+    "lng": 100.013,
+    "rating": 4.6,
+    "rating_count": 25000
+  },
+  {
+    "place_id": "ChIJfF_f-f-24jARe_T-d_o-d_o",
+    "name_th": "หัวหิน",
+    "province": "ประจวบคีรีขันธ์",
+    "lat": 12.5684,
+    "lng": 99.9577,
+    "rating": 4.4,
+    "rating_count": 30000
+  }
+]

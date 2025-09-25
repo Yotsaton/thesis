@@ -2,9 +2,6 @@
 import {type Request, type Response } from "express";
 import {CreateTripBody, type AuthenticatedRequest} from "../types/api.type"
 import { createTrip } from "../function/createTrip";
-import type { Accessor } from "../types/type";
-import { success } from "zod";
-
 
 export const createTripapi = async (req: AuthenticatedRequest, res: Response) => {
   try {

@@ -8,8 +8,14 @@ import { UpdateOptions } from "../types/type";
 // -------- Handler --------
 
 /**
- * PATCH /api/v1/trips/:trip_id
  * อัปเดตทริปของผู้ใช้ที่ล็อกอิน (partial update)
+ * body = {
+ *   updated_at: Date,       // เวลาที่ดึงข้อมูลล่าสุด (สำหรับตรวจสอบ concurrency)
+ *   header?: string,
+ *   status?: string,
+ *   start_plan?: Date,
+ *   end_plan?: Date,
+ * }
  * - ใช้สิทธิ์จาก req.auth (requireAuth ต้องมาก่อน)
  * - ใช้ updateMyTrip(auth, { trip_id, ...fields })
  */
