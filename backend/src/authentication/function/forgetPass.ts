@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcrypt';
-import { z } from 'zod';
+import { success, z } from 'zod';
 import crypto from 'crypto';
 
 import type { users, otps } from "../../database/database.types";
@@ -62,7 +62,11 @@ const ConfirmResetSchema = z
 export const requestResetLink = async (req: Request, res: Response) => {
   const parsed = RequestLinkSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    return res.status(400).json({ 
+      error: 'invalid_input', 
+      details: parsed.error.flatten(),
+      success: false,
+    });
   }
   const { email } = parsed.data;
 
@@ -77,7 +81,10 @@ export const requestResetLink = async (req: Request, res: Response) => {
     );
 
     if (!user) {
-      return res.status(404).json({ error: 'email_not_found' });
+      return res.status(404).json({ 
+        error: 'email_not_found',
+        success: false, 
+      });
     }
 
     // สร้าง token + hash + บันทึกใน otps
@@ -113,6 +120,7 @@ export const requestResetLink = async (req: Request, res: Response) => {
     });
     console.log(link); //checking
     return res.status(200).json({
+      success: true,
       message: 'reset_link_sent',
       to: maskEmail(user.email),
       expires_in_minutes: RESET_TTL_MIN,
@@ -120,7 +128,10 @@ export const requestResetLink = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('requestResetLink error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      error: 'internal_error',
+      success: false,
+    });
   }
 };
 
@@ -135,7 +146,11 @@ export const requestResetLink = async (req: Request, res: Response) => {
 export const confirmResetWithLink = async (req: Request, res: Response) => {
   const parsed = ConfirmResetSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    return res.status(400).json({ 
+      error: 'invalid_input',
+      details: parsed.error.flatten(),
+      success: false, 
+    });
   }
   const { rid, token, new_password } = parsed.data;
 
@@ -149,20 +164,29 @@ export const confirmResetWithLink = async (req: Request, res: Response) => {
       [rid]
     );
     if (!row) {
-      return res.status(400).json({ error: 'invalid_or_expired_link' });
+      return res.status(400).json({ 
+        error: 'invalid_or_expired_link',
+        success: false, 
+      });
     }
 
     // เช็คหมดอายุ
     const now = new Date();
     if (now > new Date(row.expires_at)) {
       await db.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
-      return res.status(400).json({ error: 'invalid_or_expired_link' });
+      return res.status(400).json({ 
+        error: 'invalid_or_expired_link',
+        success: false, 
+      });
     }
 
     // เทียบ token กับ hash
     const ok = await bcrypt.compare(token, row.otp_hash);
     if (!ok) {
-      return res.status(400).json({ error: 'invalid_or_expired_link' });
+      return res.status(400).json({ 
+        error: 'invalid_or_expired_link',
+        success: false, 
+      });
     }
 
     // แฮชรหัสผ่านใหม่
@@ -181,9 +205,15 @@ export const confirmResetWithLink = async (req: Request, res: Response) => {
       await t.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
     });
 
-    return res.status(200).json({ message: 'password_reset_success' });
+    return res.status(200).json({ 
+      message: 'password_reset_success',
+      success: true,  
+    });
   } catch (err) {
     console.error('confirmResetWithLink error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      error: 'internal_error',
+      success: false,
+    });
   }
 };

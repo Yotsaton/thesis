@@ -66,8 +66,9 @@ export async function updateTripAuthorized(
   const whereParts = [`t.id = $[id]`];
   if (!isAdmin) whereParts.push(`t.username = $[accessor_username]`);
   if (opts.ifMatchUpdatedAt) {
-    params.ifMatch = opts.ifMatchUpdatedAt;
-    whereParts.push(`t.updated_at = $[ifMatch]`);
+    params.ifMatch = new Date(opts.ifMatchUpdatedAt);
+    whereParts.push(`t.updated_at >= $[ifMatch]::timestamptz`);
+    whereParts.push(`t.updated_at <  ($[ifMatch]::timestamptz + interval '1 millisecond')`);
   }
 
   const sql = `

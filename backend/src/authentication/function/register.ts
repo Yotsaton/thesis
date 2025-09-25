@@ -3,9 +3,10 @@ import "dotenv/config";
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise'; // pg-promise instance
 import bcrypt from 'bcrypt';
-import { z } from 'zod';
+import { success, z } from 'zod';
 import type {users} from "../../database/database.types"
 import type {users_insert_params} from "../types/types"
+import {sendOTP}from "./otp"
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_COST)
 type users_public = Omit<users, "password">;
@@ -24,6 +25,7 @@ export const registerUser = async (req: Request, res: Response) => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
+      success: false,
       error: 'invalid_input',
       details: parsed.error.flatten(),
     });
@@ -40,10 +42,16 @@ export const registerUser = async (req: Request, res: Response) => {
     );
     if (dup) {
       if (dup.username === username) {
-        return res.status(409).json({ error: 'username นี้ถูกใช้งานแล้ว' });
+        return res.status(409).json({
+          error: 'username นี้ถูกใช้งานแล้ว',
+          success: false,
+        });
       }
       if (dup.email.toLowerCase() === email) {
-        return res.status(409).json({ error: 'อีเมลนี้ถูกลงทะเบียนแล้ว' });
+        return res.status(409).json({ 
+          error: 'อีเมลนี้ถูกลงทะเบียนแล้ว',
+          success: false,
+        });
       }
     }
 
@@ -91,16 +99,25 @@ export const registerUser = async (req: Request, res: Response) => {
     };
 
     // 7) ตอบกลับ 
-    console.log(newUser)
+    console.log(newUser);
+    const resultotp = sendOTP(newUser.username);
     return res.status(201).json({
       message: 'ลงทะเบียนสำเร็จ',
+      success: true,
+      resultotp
     });
   } catch (err: any) {
     // กันกรณีชน PK ซ้ำ (race condition)
     if (err?.code === '23505') {
-      return res.status(409).json({ error: 'username นี้ถูกใช้งานแล้ว' });
+      return res.status(409).json({ 
+        error: 'username นี้ถูกใช้งานแล้ว',
+        success: false, 
+      });
     }
     console.error('Registration Error:', err);
-    return res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+    return res.status(500).json({ 
+      error: 'เกิดข้อผิดพลาดภายในระบบ',
+      success: false,
+    });
   }
 };

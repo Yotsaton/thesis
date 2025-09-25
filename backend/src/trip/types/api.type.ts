@@ -6,7 +6,7 @@ import z from "zod"
 export type AuthenticatedRequest = Request & { auth: Accessor };
 
 /**
- * POST /api/v1/trips
+ * POST /api/v1/auth/trips
  * สร้างทริปใหม่ของผู้ใช้ที่ล็อกอินอยู่
  * Body:
  *  - header?: string | null
@@ -75,3 +75,49 @@ export const ListQuerySchema = z
 
 export type ListQueryParsed = z.infer<typeof ListQuerySchema>;
 
+/** ต้องการ timestamp ที่เป็น ISO 8601 (RFC3339) เช่น 2025-09-25T12:34:56.789Z หรือมี offset */
+const ISODateTime = z
+  .string()
+  .refine(
+    (s) => !Number.isNaN(Date.parse(s)),
+    "updated_at must be a valid ISO 8601 timestamp"
+  );
+
+export const ParamSchema = z.object({
+  trip_id: z.string().min(1, "trip_id is required"),
+});
+
+export const UpdateBodySchema = z
+  .object({
+    // ----- UpdateOptions (REQUIRED) -----
+    updated_at: ISODateTime, // ใช้เพื่อ optimistic concurrency และแมปเป็น ifMatchUpdatedAt ตอนเรียก service
+
+    // ----- Fields to update (partial) -----
+    header: z
+      .union([z.string().trim().min(1), z.literal(""), z.null()])
+      .optional()
+      .transform((v) => (v === "" ? null : v ?? undefined)),
+    status: z.string().trim().min(1).optional(),
+    start_plan: DateStr.optional(),
+    end_plan: DateStr.optional(),
+  })
+  .refine(
+    (data) =>
+      data.header !== undefined ||
+      data.status !== undefined ||
+      data.start_plan !== undefined ||
+      data.end_plan !== undefined,
+    { message: "At least one field (header, status, start_plan, end_plan) is required" }
+  )
+  .refine(
+    (data) =>
+      !(data.start_plan && data.end_plan) || data.end_plan >= data.start_plan,
+    { message: "end_plan must be >= start_plan when both are provided" }
+  );
+
+// รับ updated_at (ISO 8601) ไว้ใช้เป็น if-match (ถ้าคุณรองรับ concurrency ตอนลบ)
+export const DeleteBodySchema = z.object({
+  updated_at: z
+    .string()
+    .refine((v) => (v ? !Number.isNaN(Date.parse(v)) : true), "updated_at must be ISO 8601"),
+});

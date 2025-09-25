@@ -9,7 +9,7 @@ const router = Router();
 
 // POST /api/v1/auth
 router.post('/register', registerUser);
-router.post('/otp/sendotp', sendOTP);
+//router.post('/otp/sendotp', sendOTP);
 router.post('/otp/resendotp', resendOTP);
 router.post('/otp/verify', verifyOTP);
 router.post('/login', login);

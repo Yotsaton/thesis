@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';
 import bcrypt from 'bcrypt';
-import { z } from 'zod';
+import { success, z } from 'zod';
 
 import type { users } from "../../database/database.types";
 
@@ -17,17 +17,26 @@ const ChangePasswordSchema = z.object({
 export const changePassword = async (req: Request, res: Response) => {
   // ต้องผ่าน requireAuth มาก่อน และมี req.auth.sub = user_name
   const auth = (req as any).auth as { username?: string } | undefined;
-  if (!auth?.username) return res.status(401).json({ error: 'unauthorized' });
+  if (!auth?.username) return res.status(401).json({ 
+    error: 'unauthorized',
+    success: false,
+  });
 
   // validate body
   const parsed = ChangePasswordSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    return res.status(400).json({ 
+      error: 'invalid_input', details: parsed.error.flatten(),
+      success: false,
+    });
   }
   const { old_password, new_password } = parsed.data;
 
   if (old_password === new_password) {
-    return res.status(400).json({ error: 'password_not_changed' });
+    return res.status(400).json({ 
+      success: false,
+      error: 'password_not_changed'
+    });
   }
 
   try {
@@ -38,11 +47,17 @@ export const changePassword = async (req: Request, res: Response) => {
         WHERE username = $1`,
       [auth.username]
     );
-    if (!row) return res.status(404).json({ error: 'user_not_found' });
+    if (!row) return res.status(404).json({ 
+      success: false,
+      error: 'user_not_found' 
+    });
 
     // ตรวจ old_password
     const ok = await bcrypt.compare(old_password, row.password);
-    if (!ok) return res.status(400).json({ error: 'old_password_incorrect' });
+    if (!ok) return res.status(400).json({ 
+      success: false,
+      error: 'old_password_incorrect' 
+    });
 
     // แฮชรหัสผ่านใหม่
     const newHash = await bcrypt.hash(new_password, SALT_ROUNDS);
@@ -58,9 +73,16 @@ export const changePassword = async (req: Request, res: Response) => {
     );
 
     // หลังจากนี้ token ปัจจุบันของผู้ใช้จะใช้ต่อไม่ได้ (เพราะ ver ไม่ตรง)
-    return res.status(200).json({ message: 'password_changed', relogin_required: true });
+    return res.status(200).json({ 
+      success: true,
+      message: 'password_changed', 
+      relogin_required: true 
+    });
   } catch (err) {
     console.error('changePassword error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      success: false,
+      error: 'internal_error' 
+    });
   }
 };

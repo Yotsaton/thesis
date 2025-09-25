@@ -2,12 +2,16 @@
 import { Request, Response } from 'express';
 import { db } from '../../database/db-promise';
 import type { users } from '../../database/database.types';
+import { success } from 'zod';
 
 type users_public = Omit<users, "password">;
 
 export const me = async (req: Request, res: Response) => {
   const auth = (req as any).auth as { username: string } | undefined;
-  if (!auth?.username) return res.status(401).json({ error: 'unauthorized' });
+  if (!auth?.username) return res.status(401).json({ 
+    error: 'unauthorized',
+    success: false, 
+  });
 
   try {
     // ใช้ Pick<users,...> จากไฟล์ types
@@ -19,11 +23,17 @@ export const me = async (req: Request, res: Response) => {
       [auth.username]
     );
 
-    if (!user) return res.status(404).json({ error: 'user_not_found' });
+    if (!user) return res.status(404).json({ 
+      error: 'user_not_found',
+      success: false, 
+    });
 
-    return res.json({ user });
+    return res.json({ user, success: true });
   } catch (err) {
     console.error('me error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      error: 'internal_error',
+      success: true 
+    });
   }
 };

@@ -3,6 +3,7 @@ import {type Request, type Response } from "express";
 import {CreateTripBody, type AuthenticatedRequest} from "../types/api.type"
 import { createTrip } from "../function/createTrip";
 import type { Accessor } from "../types/type";
+import { success } from "zod";
 
 
 export const createTripapi = async (req: AuthenticatedRequest, res: Response) => {
@@ -19,11 +20,15 @@ export const createTripapi = async (req: AuthenticatedRequest, res: Response) =>
       end_plan: parsed.end_plan,
     });
 
-    return res.status(201).json({ data: trip });
+    return res.status(201).json({ 
+      success: true,
+      data: trip 
+    });
   } catch (err: any) {
     // จัดการ error ที่มาจาก zod หรือจากฟังก์ชัน createTrip
     if (err?.name === "ZodError") {
       return res.status(400).json({
+        success: false,
         error: "validation_error",
         details: err.issues,
       });
@@ -37,7 +42,9 @@ export const createTripapi = async (req: AuthenticatedRequest, res: Response) =>
       msg.includes("ข้อมูลไม่ผ่านเงื่อนไขของตาราง") ? 400 :
       500;
 
-    return res.status(status).json({ error: msg });
+    return res.status(status).json({ 
+      success: false,
+      error: msg });
   }
 };
 

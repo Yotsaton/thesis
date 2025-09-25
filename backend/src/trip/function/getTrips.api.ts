@@ -3,6 +3,7 @@ import {type Response } from "express";
 import {AuthenticatedRequest, ListQuerySchema, type ListQueryParsed} from "../types/api.type";
 import { getTrips } from "./getTrips";
 import { Accessor, ListTripsOptions } from "../types/type";
+import { success } from "zod";
 
 /**
  * GET /api/v1/trips
@@ -49,6 +50,7 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     return res.status(200).json({
+      success: true,
       data: items,
       pagination: {
         page,
@@ -61,9 +63,14 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (err: any) {
     if (err?.name === "ZodError") {
-      return res.status(400).json({ error: "validation_error", details: err.issues });
+      return res.status(400).json({ 
+        error: "validation_error", details: err.issues,
+        success: false,
+      });
     }
     const msg = typeof err?.message === "string" ? err.message : "unexpected_error";
-    return res.status(500).json({ error: msg });
+    return res.status(500).json({ 
+      success: false,
+      error: msg });
   }
 };

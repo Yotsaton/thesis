@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { uuid, z } from 'zod';
+import { success, uuid, z } from 'zod';
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../database/db-promise";
@@ -38,6 +38,7 @@ export async function login(req: Request, res: Response) {
   const parsed = LoginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
+      success: false,
       error: 'invalid_input',
       details: parsed.error.flatten(),
     });
@@ -49,12 +50,21 @@ export async function login(req: Request, res: Response) {
     `SELECT * FROM public.users WHERE username = $1 OR email = $1`,
     [usernameOrEmail]
   );
-  if (!user) return res.status(401).json({ error: "invalid credentials" });
-  if (!user.is_verify) return res.status(403).json({ error: "user not verified" });
+  if (!user) return res.status(401).json({ 
+    error: "invalid credentials",
+    success: false 
+  });
+  if (!user.is_verify) return res.status(403).json({ 
+    error: "user not verified", 
+    success: false,
+  });
 
   // 2) ตรวจ password
   const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ error: "invalid credentials" });
+  if (!match) return res.status(401).json({ 
+    error: "invalid credentials",
+    success: false,
+  });
   
   // 3) อัพเดท user table
   await db.none(
@@ -78,5 +88,8 @@ export async function login(req: Request, res: Response) {
 
   res
     .cookie(ACCESS_COOKIE, access, accessCookieOpts)
-    .json({ message: "logged in" });
+    .json({ 
+      message: "logged in",
+      success: true
+    });
 }

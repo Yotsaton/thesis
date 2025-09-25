@@ -6,9 +6,8 @@ import { db } from '../../database/db-promise';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import crypto from 'crypto';
-
 import type { users, otps } from "../../database/database.types";
-import { diff } from 'util';
+
 
 const OTP_TTL_MIN = Number(process.env.OTP_TTL_MIN ?? 5);           // อายุ OTP (นาที)
 const RESEND_COOLDOWN_SEC = Number(process.env.OTP_RESEND_COOLDOWN ?? 60);
@@ -52,30 +51,20 @@ const VerifyOtpSchema = z
 
 const ResendOtpSchema = SendOtpSchema;
 
-// ---------- Handlers ----------
-/**
- * ส่ง OTP ให้ผู้ใช้ (สร้าง/แทนที่แถวใน public.otps)
- * body: { user_name }
- */
-export const sendOTP = async (req: Request, res: Response) => {
-  const parsed = SendOtpSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
-  }
-  const { username } = parsed.data;
 
+export async function sendOTP(username:string){
   try {
     // 1) หาอีเมล/สถานะยืนยัน
     const user = await db.oneOrNone<Pick<users, 'username' | 'email' | 'is_verify'>>(
       `SELECT username, email, is_verify FROM public.users WHERE username = $1`,
       [username]
     );
-    if (!user) return res.status(404).json({ error: 'user_not_found' });
+    if (!user) throw new Error('user_not_found');
 
     // ผู้ใช้ยืนยันแล้ว ไม่ต้องออก OTP อีก
     if (user.is_verify) {
       await db.none(`DELETE FROM public.otps WHERE username = $1`, [username]);
-      return res.status(409).json({ error: 'already_verified' });
+      throw new Error('already_verified');
     }
 
     // 2) ถ้ามี OTP อยู่แล้ว -> บล็อก และให้ไปใช้งาน /otp/resend
@@ -91,16 +80,11 @@ export const sendOTP = async (req: Request, res: Response) => {
       const last = new Date(existing.last_resent_at);
       const diffSec = Math.floor((now.getTime() - last.getTime()) / 1000);
       const canResendIn = Math.max(0, RESEND_COOLDOWN_SEC - diffSec);
-      console.log("now" + now);
-      console.log("last" + last);
-      console.log("diff" + diffSec);
       
-      return res.status(409).json({
-        error: 'otp_already_sended',
-        message: 'มี OTP สำหรับผู้ใช้นี้อยู่แล้ว ให้ใช้ /resendOTP เพื่อรับOTPอีกครั้ง',
-        can_resend_in_seconds: canResendIn,
-        expires_at: existing.expires_at, // เผื่อ UI ใช้บอกผู้ใช้
-      });
+      throw new Error(`otp_already_sended : ให้ใช้resendOTP
+        can resend in seconds: ${canResendIn}
+        expires_at: ${existing.expires_at}`
+      );
     }
 
     // 3) สร้าง/เก็บ OTP (ครั้งแรกเท่านั้นถึงมาถึงตรงนี้)
@@ -125,20 +109,18 @@ export const sendOTP = async (req: Request, res: Response) => {
       text: `รหัสยืนยันของคุณคือ: ${otp}\nรหัสจะหมดอายุใน ${OTP_TTL_MIN} นาที`,
     });
 
-    return res.status(200).json({
-      message: 'otp_sent',
-      to: maskEmail(user.email),
-      expires_in_minutes: OTP_TTL_MIN,
-    });
+    return `OTP sended
+      to: ${maskEmail(user.email)}
+      expires in minutes: ${OTP_TTL_MIN}`;
   } catch (err) {
     console.error('sendOTP error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    throw new Error('internal_error');
   }
-};
+}
 
 /**
  * ยืนยัน OTP
- * body: { user_name, otp }
+ * body: { username, otp }
  * - ตรวจหมดอายุ
  * - เปรียบเทียบ hash
  * - อัปเดต users.is_verify = true
@@ -147,7 +129,11 @@ export const sendOTP = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   const parsed = VerifyOtpSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    return res.status(400).json({ 
+      error: 'invalid_input',
+      details: parsed.error.flatten(),
+      success: false,
+    });
   }
   const { username, otp } = parsed.data;
 
@@ -163,7 +149,10 @@ export const verifyOTP = async (req: Request, res: Response) => {
     );
 
     if (!row) {
-      return res.status(400).json({ error: 'otp_not_found' });
+      return res.status(400).json({ 
+        error: 'otp_not_found',
+        success: false,
+      });
     }
 
     // 2) ตรวจหมดอายุ
@@ -171,13 +160,19 @@ export const verifyOTP = async (req: Request, res: Response) => {
     if (now > new Date(row.expires_at)) {
       // ลบแถวที่หมดอายุ
       await db.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
-      return res.status(400).json({ error: 'otp_expired' });
+      return res.status(400).json({ 
+        error: 'otp_expired',
+        success: false,
+      });
     }
 
     // 3) เทียบรหัส
     const ok = await bcrypt.compare(otp, row.otp_hash);
     if (!ok) {
-      return res.status(400).json({ error: 'otp_incorrect' });
+      return res.status(400).json({ 
+        error: 'otp_incorrect',
+        success: false,
+      });
     }
 
     // 4) อัปเดตสถานะผู้ใช้ และลบ OTP
@@ -186,21 +181,31 @@ export const verifyOTP = async (req: Request, res: Response) => {
       await t.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
     });
 
-    return res.status(200).json({ message: 'otp_verified' });
+    return res.status(200).json({ 
+      message: 'otp_verified',
+      success: true,
+    });
   } catch (err) {
     console.error('verifyOTP error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      error: 'internal_error', 
+      success: false, 
+    });
   }
 };
 
 /**
  * ขอส่ง OTP ใหม่ (Resend) โดยเคารพ cooldown ที่ last_resent_at
- * body: { user_name }
+ * body: { username }
  */
 export const resendOTP = async (req: Request, res: Response) => {
   const parsed = ResendOtpSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    return res.status(400).json({ 
+      error: 'invalid_input', 
+      details: parsed.error.flatten(),
+      success: false, 
+    });
   }
   const { username } = parsed.data;
 
@@ -211,7 +216,10 @@ export const resendOTP = async (req: Request, res: Response) => {
       [username]
     );
     if (!user) {
-      return res.status(404).json({ error: 'user_not_found' });
+      return res.status(404).json({ 
+        error: 'user_not_found',
+        success: false,
+      });
     }
 
     // 2) ดูข้อมูล OTP ปัจจุบัน (ถ้ามี)
@@ -233,6 +241,7 @@ export const resendOTP = async (req: Request, res: Response) => {
       
       if (diffSec < RESEND_COOLDOWN_SEC) {
         return res.status(429).json({
+          success: false,
           error: 'resend_too_soon',
           retry_after_seconds: RESEND_COOLDOWN_SEC - diffSec,
         });
@@ -272,6 +281,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
+      success: true,
       message: 'otp_resent',
       to: maskEmail(user.email),
       expires_in_minutes: OTP_TTL_MIN,
@@ -279,6 +289,9 @@ export const resendOTP = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('resendOTP error:', err);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(500).json({ 
+      error: 'internal_error',
+      success: false
+    });
   }
 };
