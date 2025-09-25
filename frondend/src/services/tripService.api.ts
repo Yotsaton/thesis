@@ -1,15 +1,12 @@
 // src/services/tripService.api.js
 import { appState, setTripList, setCurrentTrip } from "../state/index.js";
 
-// Define your API base URL here or import it from a config file
-const API_URL = import.meta.env.VITE_API_URL;
-
 function getStatusEl() {
   return document.getElementById("save-status");
 }
-let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+let saveTimeout;
 
-function updateSaveStatus(message: string, isError = false) {
+function updateSaveStatus(message, isError = false) {
   const statusEl = getStatusEl();
   if (!statusEl) return;
   statusEl.textContent = message;
@@ -20,15 +17,10 @@ function updateSaveStatus(message: string, isError = false) {
   }
 }
 
-async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  // Read token from cookie named "access_token"
-  function getAuthTokenFromCookie() {
-    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : "DUMMY_TOKEN_FOR_DEV";
-  }
-  const token = getAuthTokenFromCookie();
+async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem("authToken") || "DUMMY_TOKEN_FOR_DEV";
   try {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`/api${endpoint}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -43,22 +35,18 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
     return await res.json();
   } catch (error) {
     console.error(`API request error to ${endpoint}:`, error);
-    const errorMessage =
-      typeof error === "object" && error !== null && "message" in error
-        ? (error as { message?: string }).message
-        : undefined;
-    return { success: false, message: errorMessage || "A network error occurred." };
+    return { success: false, message: error.message || "A network error occurred." };
   }
 }
 
 export async function loadTripList() {
-  const data = await apiRequest("/auth/trip/", { method: "GET" });
+  const data = await apiRequest("/trips", { method: "GET" });
   if (data.success) setTripList(data.trips);
   return data;
 }
 
-export async function loadTrip(tripId: string) {
-  const data = await apiRequest(`/auth/trip/${tripId}`, { method: "GET" });
+export async function loadTrip(tripId) {
+  const data = await apiRequest(`/trips/${tripId}`, { method: "GET" });
   if (data.success) setCurrentTrip(data.trip);
   return data;
 }
@@ -98,7 +86,7 @@ export async function saveCurrentTrip() {
   }
 }
 
-export async function deleteTrip(tripId: string) {
+export async function deleteTrip(tripId) {
   const data = await apiRequest(`/trips/${tripId}`, { method: "DELETE" });
   if (data.success) appState.trips = appState.trips.filter((t) => t._id !== tripId);
   return data;

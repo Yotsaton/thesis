@@ -3,7 +3,7 @@ import type { TripServiceInterface } from '../types.js';
 
 export const CONFIG = {
   GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  OFFLINE_MODE: false, //  OFFLINE_MODE: false, จะเปลี่ยนเป็น Backend Server 
+  OFFLINE_MODE: true, //  OFFLINE_MODE: false, จะเปลี่ยนเป็น Backend Server 
   REQUIRE_AUTH: false, // ⬅️ เพิ่ม Config นี้เข้ามา
 };
 

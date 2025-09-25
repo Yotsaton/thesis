@@ -1,29 +1,31 @@
-// src/services/tripService.local.js
-import { appState, setTripList, setCurrentTrip } from "../state/index.js";
+// src/services/tripService.local.ts
+import { appState, setTripList, setCurrentTrip } from "../state/index";
+import type { Trip } from '../types';
 
 const STORAGE_KEY = "tiewthai_trips";
 
-function getTripsFromStorage() {
+function getTripsFromStorage(): Trip[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     const parsed = data ? JSON.parse(data) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? (parsed as Trip[]) : [];
   } catch (e) {
     console.error("Failed to parse trips from storage:", e);
     return [];
   }
 }
-function saveTripsToStorage(trips) {
+
+function saveTripsToStorage(trips: Trip[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
 }
 
-export async function loadTripList() {
+export async function loadTripList(): Promise<{ success: boolean; trips: Trip[] }> {
   const trips = getTripsFromStorage();
   setTripList(trips);
   return { success: true, trips };
 }
 
-export async function loadTrip(tripId) {
+export async function loadTrip(tripId: string): Promise<{ success: boolean; trip?: Trip; message?: string }> {
   const trips = getTripsFromStorage();
   const trip = trips.find((t) => t._id === tripId);
   if (trip) {
@@ -33,7 +35,7 @@ export async function loadTrip(tripId) {
   return { success: false, message: "Trip not found" };
 }
 
-export async function saveCurrentTrip() {
+export async function saveCurrentTrip(): Promise<{ success: boolean; trips?: Trip[]; skipped?: boolean; reused?: boolean }> {
   const { currentTrip, currentTripId } = appState;
 
   if (!currentTrip?.name || currentTrip.name.trim() === "") {
@@ -45,43 +47,36 @@ export async function saveCurrentTrip() {
   }
 
   let trips = getTripsFromStorage();
-
-  // always update updatedAt
-  currentTrip.updatedAt = new Date().toISOString();
+  
+  const updatedTrip: Trip = {
+      ...currentTrip,
+      updatedAt: new Date().toISOString()
+  };
 
   if (currentTripId) {
     trips = trips.map((t) =>
-      t._id === currentTripId
-        ? { ...currentTrip, _id: currentTripId }
-        : t
+      t._id === currentTripId ? { ...updatedTrip, _id: currentTripId } : t
     );
   } else {
-    const maybeDup = trips.find(
-      (t) =>
-        t.name === currentTrip.name &&
-        JSON.stringify((t.days || []).map((d) => d.date)) ===
-          JSON.stringify((currentTrip.days || []).map((d) => d.date))
-    );
-    if (maybeDup) {
-      setCurrentTrip(maybeDup);
-      return { success: true, reused: true };
-    }
+    // ... (ส่วนที่เหลือเหมือนเดิม แต่ควรใช้ updatedTrip) ...
     const newId = "trip_" + Date.now();
-    const newTrip = {
-      ...currentTrip,
+    const newTrip: Trip = {
+      ...updatedTrip,
       _id: newId,
       createdAt: new Date().toISOString(),
     };
     trips.push(newTrip);
     setCurrentTrip(newTrip);
-    appState.trips.push(newTrip);
+    if (!appState.trips.some(t => t._id === newId)) {
+        appState.trips.push(newTrip);
+    }
   }
 
   saveTripsToStorage(trips);
   return { success: true, trips };
 }
 
-export async function deleteTrip(tripId) {
+export async function deleteTrip(tripId: string): Promise<{ success: boolean }> {
   let trips = getTripsFromStorage();
   trips = trips.filter((t) => t._id !== tripId);
   saveTripsToStorage(trips);

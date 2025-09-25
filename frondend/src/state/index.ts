@@ -4,12 +4,6 @@ import { getTripService } from '../services/config.js';
 
 // --- สร้าง "พิมพ์เขียว" (Interfaces & Types) สำหรับโครงสร้างข้อมูลทั้งหมด ---
 // สามารถย้าย Type เหล่านี้ไปไว้ในไฟล์กลาง src/types.ts ในอนาคตได้
-export interface geoJSONPoint {
-  type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
-}
-
-export type DateYMD = string; // 'YYYY-MM-DD'
 
 export interface PlaceItem {
   type: 'place';
@@ -40,6 +34,7 @@ export interface Trip {
   _id: string | null;
   name: string;
   days: Day[];
+  createdAt?: string;
   updatedAt?: string;
 }
 

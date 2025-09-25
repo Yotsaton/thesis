@@ -12,10 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Keep environment variables out of version control
-.env
-desktop.ini
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
