@@ -48,7 +48,6 @@ export interface day_trip{
   created_at : Date ;
   date : DateYMD ; // date for plan
   header : string | null; 
-  geometry : string | null ;
   updated_at : Date ;
 }
 
@@ -71,10 +70,9 @@ export interface route{
   day_trip_id : string;       // FK from dat_trip table
   place_id : string | null;   // FK from place table
   created_at : Date;
-  duration : number | null;   // time to travel in next index
-  distance : number | null;   // distance in next index
-  time_used : number | null;  // time to used at place_id
   note : any | null;
   index : number ;
   updated_at : Date;
+  start_time : Date | null;
+  end_time : Date | null;
 }

@@ -59,9 +59,17 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
       offset,
     });
 
+    const trips = items.map(trip => ({
+      id: trip.id,
+      name: trip.header,
+      start_plan: trip.start_plan,
+      end_plan: trip.end_plan,
+      updatedAt: trip.updated_at,
+    }));
+
     return res.status(200).json({
       success: true,
-      data: items,
+      trips: trips,
       pagination: {
         page,
         page_size,
@@ -71,6 +79,7 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
       sort: { order_by: orderBy, direction },
       filters: { q, status, from, to, usernames: isAdmin ? usernames : [auth.username] },
     });
+    
   } catch (err: any) {
     if (err?.name === "ZodError") {
       return res.status(400).json({ 

@@ -31,19 +31,19 @@ function createPlanCard(trip: Trip): HTMLDivElement {
   `;
 
   const loadButton = card.querySelector<HTMLButtonElement>('.btn-load');
-  if (loadButton && trip._id) {
+  if (loadButton && trip.id) {
     loadButton.addEventListener('click', () => {
-      localStorage.setItem('activeTripId', trip._id!); // ใช้ Non-null assertion (!) เพราะเราเช็คแล้วว่า trip._id มีค่า
+      localStorage.setItem('activeTripId', trip.id!); // ใช้ Non-null assertion (!) เพราะเราเช็คแล้วว่า trip._id มีค่า
       window.location.href = '/my-plans.html'; // Path ที่ถูกต้องสำหรับ Vite
     });
   }
 
   const deleteButton = card.querySelector<HTMLButtonElement>('.btn-delete');
-  if (deleteButton && trip._id) {
+  if (deleteButton && trip.id) {
     deleteButton.addEventListener('click', async () => {
       if (confirm(`Delete "${trip.name}" ?`)) {
         const tripService = await getTripService();
-        await tripService.deleteTrip(trip._id!);
+        await tripService.deleteTrip(trip.id!);
         renderPlans();
       }
     });

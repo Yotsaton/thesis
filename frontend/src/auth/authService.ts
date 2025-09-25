@@ -11,10 +11,10 @@ interface ApiResponse<T = {}> {
 }
 
 // Define allowed HTTP methods for type safety
-type HttpMethod = 'POST' | 'GET' | 'PUT' | 'DELETE';
+type HttpMethod = 'POST' | 'GET' | 'PUT' | 'DELETE' | 'PATCH';
 
 // Use a relative URL which is better practice for deployment
-const API_URL = '/api/v1/auth';
+const API_URL = import.meta.env.VITE_API_URL;
 
 async function apiRequest<T>(
   endpoint: string,
@@ -52,25 +52,25 @@ async function apiRequest<T>(
 
 // Define parameter types for each exported function
 export function login(usernameOrEmail: string, password: string): Promise<ApiResponse> {
-  return apiRequest('/login', { usernameOrEmail, password });
+  return apiRequest('/auth/login', { usernameOrEmail, password });
 }
 
 export function register(username: string, email: string, password: string): Promise<ApiResponse> {
-  return apiRequest('/register', { username, email, password });
+  return apiRequest('/auth/register', { username, email, password });
 }
 
 export function validateOtp(username: string, otp: string): Promise<ApiResponse> {
-  return apiRequest('/otp/verify', { username, otp });
+  return apiRequest('/auth/otp/verify', { username, otp });
 }
 
 export function resendOtp(username: string): Promise<ApiResponse> {
-  return apiRequest('/otp/resendotp', { username });
+  return apiRequest('/auth/otp/resendotp', { username });
 }
 
 export function forgotPassword(email: string): Promise<ApiResponse> {
-  return apiRequest('/forgot-password', { email });
+  return apiRequest('/auth/forgot-password', { email });
 }
 
 export function resetPassword(token: string, password: string): Promise<ApiResponse> {
-  return apiRequest('/reset-password', { token, password });
+  return apiRequest('/auth/reset-password', { token, password });
 }

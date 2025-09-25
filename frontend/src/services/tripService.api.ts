@@ -17,22 +17,47 @@ function updateSaveStatus(message: string, isError: boolean = false): void {
   }
 }
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-  const token = localStorage.getItem("authToken") || "DUMMY_TOKEN_FOR_DEV";
+  
+  const controller = new AbortController();
+
   try {
-    const res = await fetch(`/api${endpoint}`, {
+    const res = await fetch(`${API_URL}${endpoint}`, {
       ...options,
+      credentials: "include", // Include cookies in requests
+      signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Accept": "application/json",
         ...(options.headers || {}),
       },
+      redirect: 'manual',
     });
+
+    const ctype = res.headers.get('content-type') || '';
+    const isJson = ctype.includes('application/json');
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      throw new Error(err.message || "An HTTP error occurred");
+      const body = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
+      const message =
+        (isJson && typeof body === 'object' && body && (body as any).message) ||
+        `HTTP ${res.status} ${res.statusText}`;
+      const errorObj = new Error(String(message));
+      (errorObj as any).status = res.status;
+      (errorObj as any).body = body;
+      (errorObj as any).contentType = ctype;
+      throw errorObj;
     }
+
+    if(!isJson) {
+      const snippet = await res.text().catch(() => '');
+      const shortSnippet = snippet.length > 100 ? snippet.slice(0, 100) + '...' : snippet;
+      throw new Error(`Expected JSON response but got: ${shortSnippet}`);
+    }
+
     return res.status === 204 ? { success: true } : await res.json();
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "A network error occurred.";
     console.error(`API request error to ${endpoint}:`, error);
@@ -41,17 +66,36 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export async function loadTripList(): Promise<any> {
-  const data = await apiRequest("/trips", { method: "GET" });
+  const data = await apiRequest("/auth/trip/", { method: "GET" });
   if (data.success) {
-    setTripList(data.trips as Trip[]);
+    setTripList(
+      (data.trips as any[]).map(trip => ({
+        id: trip._id ?? null,
+        name: trip.name,
+        start_plan: trip.start_plan,
+        end_plan: trip.end_plan,
+        days: trip.days,
+        updatedAt: trip.updatedAt,
+      }))
+    );
   }
   return data;
 }
 
+// ยังไม่ได้ทำapi endpoint สำหรับดึง trip เดียว
 export async function loadTrip(tripId: string): Promise<any> {
   const data = await apiRequest(`/trips/${tripId}`, { method: "GET" });
   if (data.success) {
-    setCurrentTrip(data.trip as Trip);
+    // Ensure the trip object has an 'id' property as required by the Trip interface
+    const tripWithId: Trip = {
+      id: data.trip._id ?? null,
+      name: data.trip.name,
+      start_plan: data.trip.start_plan,
+      end_plan: data.trip.end_plan,
+      days: data.trip.days,
+      updatedAt: data.trip.updatedAt,
+    };
+    setCurrentTrip(tripWithId);
   }
   return data;
 }
@@ -96,7 +140,7 @@ export async function saveCurrentTrip(): Promise<any> {
 export async function deleteTrip(tripId: string): Promise<any> {
   const data = await apiRequest(`/trips/${tripId}`, { method: "DELETE" });
   if (data.success) {
-    appState.trips = appState.trips.filter((t) => t._id !== tripId);
+    appState.trips = appState.trips.filter((t) => t.id !== tripId);
   }
   return data;
 }

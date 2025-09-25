@@ -1,39 +1,43 @@
 // src/types.ts
 
+
+
+// interface support
+export interface geoJSONPoint {
+  type: 'Point';
+  coordinates: [number, number]; // [longitude, latitude]
+}
+
+export type DateYMD = string; // 'YYYY-MM-DD'
+export type Time = string; // 'HH:mm'
+
 // รายการในแต่ละวัน อาจเป็นสถานที่หรือโน้ต
-export interface PlaceItem {
-  type: 'place';
-  id: string;
-  name: string;
-  place_id: string;
-  location: { lat: number; lng: number };
-  startTime: string;
-  endTime: string;
+export type DayItem = {
+  id: string | null;
+  place_id?: string; // id from database
+  location?: geoJSONPoint; // lng, lat
+  name?: string;
+  text?: string;
+  startTime?: Time;
+  endTime?: Time;
 }
 
-export interface NoteItem {
-  type: 'note';
-  id: string;
-  text: string;
-}
-
-export type DayItem = PlaceItem | NoteItem;
-
-// ข้อมูลของแต่ละวัน
 export interface Day {
-  date: string; // ISO date string e.g., "2025-09-25"
+  id: string | null;
+  date: DateYMD;
   subheading: string;
   items: DayItem[];
+  updatedAt?: string;
   color: string;
 }
 
-// ข้อมูลของทริปทั้งหมด
 export interface Trip {
-  _id: string | null; // null for a new, unsaved trip
+  id: string | null;
   name: string;
+  start_plan?: string;
+  end_plan?: string;
   days: Day[];
-  createdAt?: string; // Optional for new local trips
-  updatedAt?: string; // Optional for new local trips
+  updatedAt?: string;
 }
 
 // Interface สำหรับ Service Module เพื่อให้มีมาตรฐานเดียวกัน

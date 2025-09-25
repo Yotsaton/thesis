@@ -5,36 +5,41 @@ import { getTripService } from '../services/config.js';
 // --- สร้าง "พิมพ์เขียว" (Interfaces & Types) สำหรับโครงสร้างข้อมูลทั้งหมด ---
 // สามารถย้าย Type เหล่านี้ไปไว้ในไฟล์กลาง src/types.ts ในอนาคตได้
 
-export interface PlaceItem {
-  type: 'place';
-  id: string;
-  name: string;
-  place_id: string;
-  location: { lat: number; lng: number };
-  startTime: string;
-  endTime: string;
+// interface support
+export interface geoJSONPoint {
+  type: 'Point';
+  coordinates: [number, number]; // [longitude, latitude]
 }
 
-export interface NoteItem {
-  type: 'note';
-  id: string;
-  text: string;
-}
+export type DateYMD = string; // 'YYYY-MM-DD'
+export type Time = string; // 'HH:mmZ'
 
-export type DayItem = PlaceItem | NoteItem;
+
+export type DayItem = {
+  id: string | null;
+  place_id?: string; // id from database
+  location?: geoJSONPoint; // lng, lat
+  name?: string;
+  text?: string;
+  startTime?: Time;
+  endTime?: Time;
+}
 
 export interface Day {
-  date: string;
+  id: string | null;
+  date: DateYMD;
   subheading: string;
   items: DayItem[];
+  updatedAt?: string;
   color: string;
 }
 
 export interface Trip {
-  _id: string | null;
+  id: string | null;
   name: string;
+  start_plan?: string;
+  end_plan?: string;
   days: Day[];
-  createdAt?: string;
   updatedAt?: string;
 }
 
@@ -50,7 +55,7 @@ export const appState: AppState = {
   trips: [],
   currentTripId: null,
   currentTrip: {
-    _id: null,
+    id: null,
     name: 'Untitled Plan',
     days: []
   },
@@ -73,14 +78,14 @@ export function setTripList(trips: Trip[]): void {
 }
 
 export function setCurrentTrip(tripData: Trip): void {
-  appState.currentTripId = tripData._id || null;
+  appState.currentTripId = tripData.id || null;
   appState.currentTrip = tripData;
   appState.activeDayIndex = null;
 }
 
 export function createNewLocalTrip(): void {
   appState.currentTripId = null;
-  appState.currentTrip = { _id: null, name: 'Untitled Plan', days: [] };
+  appState.currentTrip = { id: null, name: 'Untitled Plan', days: [] };
   appState.activeDayIndex = null;
 }
 
@@ -117,12 +122,11 @@ export function addPlaceToDay(
     day.items = [];
   }
 
-  const newPlace: PlaceItem = {
-    type: 'place',
+  const newPlace: DayItem = {
     id: 'p_' + Date.now(),
     name: name || 'Pinned location',
     place_id: place_id || '',
-    location: { lat: parseFloat(lat as string), lng: parseFloat(lng as string) },
+    location: { coordinates: [parseFloat(lng as string), parseFloat(lat as string)], type: 'Point' },
     startTime: '',
     endTime: ''
   };
