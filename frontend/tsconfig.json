@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true,
+    
+    /* เพิ่ม/แก้ไข ส่วนสำคัญตรงนี้ */
+    "allowJs": true, // อนุญาตให้ import ไฟล์ .js ได้
+    "checkJs": false // ไม่ต้องตรวจสอบ Type ในไฟล์ .js
+  },
+  "include": ["src"] // บอกให้ TypeScript ดูเฉพาะไฟล์ในโฟลเดอร์ src
+}

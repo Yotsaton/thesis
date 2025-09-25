@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login | Tiew Thai</title>
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="/styles/base.css" />
+<link rel="stylesheet" href="/styles/auth.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="form-box login">
+      <form>
+        <h1>Login</h1>
+        <div class="input-box">
+          <input name="email" type="text" placeholder="Username or Email" required />
+          <i class="bx bxs-user"></i>
+        </div>
+        <div class="input-box">
+          <input name="password" type="password" placeholder="Password" required />
+          <i class="bx bxs-lock"></i>
+        </div>
+        <div class="forgot-link">
+          <a href="#" class="forgot-link-btn">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+
+    <div class="form-box register">
+      <form>
+        <h1>Registration</h1>
+        <div class="input-box">
+          <input name="username" type="text" placeholder="Username" required />
+          <i class="bx bxs-user"></i>
+        </div>
+        <div class="input-box">
+          <input name="email" type="email" placeholder="Email" id="register-email" required />
+          <i class="bx bxs-envelope"></i>
+        </div>
+        <div class="input-box">
+          <input name="password" type="password" placeholder="Password" id="register-password" required />
+          <i class="bx bxs-lock"></i>
+        </div>
+        <div class="password-validator" id="register-validator">
+          <ul>
+            <li class="validator-length"><span></span>At least 8 characters</li>
+            <li class="validator-uppercase"><span></span>An uppercase letter</li>
+            <li class="validator-lowercase"><span></span>A lowercase letter</li>
+            <li class="validator-number"><span></span>A number</li>
+            <li class="validator-special"><span></span>A special character (!@#$)</li>
+          </ul>
+        </div>
+        <button type="submit" class="btn sent-otp-btn" disabled>Send OTP</button>
+      </form>
+    </div>
+
+    <div class="toggle-container">
+      <div class="toggle">
+        <div class="toggle-panel toggle-left">
+          <h1>Welcome Back!</h1>
+          <p>Enter your personal details to use all of site features</p>
+          <button class="btn login-btn">Login</button>
+        </div>
+        <div class="toggle-panel toggle-right">
+          <h1>Tiew Thai</h1>
+          <p>Your travel plan, your way.<br /><br />Build efficient, flexible itineraries with smart suggestions based on your destination and time frame</p>
+          <button class="btn register-btn">Register</button>
+        </div>
+
+        <div class="toggle-panel toggle-panel-forgot">
+          <form id="forgot-password-form">
+            <h1>Reset Password</h1>
+            <p>Enter the email associated with your account and we'll send you a link to reset your password.</p>
+            <div class="input-box">
+              <input name="email" type="email" placeholder="Email" required />
+              <i class="bx bxs-envelope"></i>
+            </div>
+            <button type="submit" class="btn">Reset Password</button>
+            <a href="#" class="back-to-login-btn" style="margin-top: 15px; display: inline-block;">Back to Login</a>
+          </form>
+        </div>
+
+        <div class="toggle-panel toggle-panel-success">
+          <form>
+            <h1>Check Your Email</h1>
+            <i class="bx bxs-check-circle" style="font-size: 60px; margin: 15px 0;"></i>
+            <p>We have sent a password recovery link to your email. Please check your inbox.</p>
+            <button type="button" class="btn back-to-login-btn">Back to Login</button>
+          </form>
+        </div>
+
+        <div class="toggle-panel toggle-panel-otp">
+          <form>
+            <h1>Verify Your Account</h1>
+            <p>A One-Time Password has been sent to</p>
+            <p class="user-email-otp" style="font-weight: bold;">...</p>
+            <div class="otp-input-container">
+              <input type="text" class="otp-input" maxlength="1" required />
+              <input type="text" class="otp-input" maxlength="1" required />
+              <input type="text" class="otp-input" maxlength="1" required />
+              <input type="text" class="otp-input" maxlength="1" required />
+              <input type="text" class="otp-input" maxlength="1" required />
+              <input type="text" class="otp-input" maxlength="1" required />
+            </div>
+            <button type="button" class="btn validate-btn">Validate</button>
+            <button type="button" class="btn resend-btn" disabled>Resend OTP</button>
+            <p class="otp-timer">OTP will expire in: <span id="timer">05:00</span></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/services/config.ts"></script>
+  <script type="module" src="/src/pages/main/index.ts"></script>
+</body>
+</html>
