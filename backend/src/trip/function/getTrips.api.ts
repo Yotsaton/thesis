@@ -1,9 +1,8 @@
 // src/trip/function/getTrip.api.ts
 import {type Response } from "express";
-import {AuthenticatedRequest, ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.type";
+import {type AuthenticatedRequest, Accessor} from "../../middleware/type.api";
+import { ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.type";
 import { getTrips, getTrip} from "./getTrips";
-import { Accessor, ListTripsOptions } from "../types/type";
-import { success } from "zod";
 
 /**
  * GET /api/v1/auth/trip

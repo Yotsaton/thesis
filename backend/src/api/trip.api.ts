@@ -1,5 +1,5 @@
-// src/api/trip.api.ts
-import { Router, Request, Response } from "express";
+// .src/api/trip.api.ts
+import { Router } from "express";
 import {requireAuth} from '../middleware/requireAuth'
 import { withAuth } from "../middleware/withAuth";
 import { createTripapi, getTripsapi, updateTripapi, deleteTripapi, 

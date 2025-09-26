@@ -7,11 +7,6 @@ export type CreateTripParams = {
   end_plan: string | Date;                // วันจบ (date)
 };
 
-export type Accessor = {
-  username: string;        // เจ้าของ token / ผู้เรียกใช้
-  is_super_user?: boolean;
-  is_staff_user?: boolean;
-};
 
 export type ListTripsOptions = {
   // เฉพาะแอดมินเท่านั้นที่ใช้ได้: ระบุผู้ใช้เป้าหมาย

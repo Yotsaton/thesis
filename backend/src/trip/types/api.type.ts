@@ -1,9 +1,5 @@
 // src/trip/types/api.type.ts
-import { type Request } from "express";
-import { Accessor } from "./type";
 import z from "zod"
-
-export type AuthenticatedRequest = Request & { auth: Accessor };
 
 /**
  * POST /api/v1/auth/trips

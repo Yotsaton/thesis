@@ -1,6 +1,7 @@
 // src/trip/routes/trip.router.ts
 import {type Request, type Response } from "express";
-import {CreateTripBody, type AuthenticatedRequest} from "../types/api.type"
+import {type AuthenticatedRequest} from "../../middleware/type.api";
+import {CreateTripBody} from "../types/api.type";
 import { createTrip } from "../function/createTrip";
 
 export const createTripapi = async (req: AuthenticatedRequest, res: Response) => {

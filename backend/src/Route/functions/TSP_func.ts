@@ -1,47 +1,44 @@
 // src/Route/functions/TSP_func.ts
-import type { place } from "../../database/database.types";
 
-/**
- * คำนวณระยะทาง Haversine ระหว่างจุดสองจุด (หน่วย: กิโลเมตร)
- * @param a สถานที่จุดแรก (Place)
- * @param b สถานที่จุดสอง (Place)
- * @returns ระยะทางระหว่างสองจุด (กิโลเมตร)
- */
-function distanceBetweenPlaces(a: place, b: place): number {
-  const [lon1, lat1] = a.location.coordinates; // GeoJSON: [lon, lat]
-  const [lon2, lat2] = b.location.coordinates;
+import { type PlaceItem } from "../types/types";
 
-  const R = 6371; // รัศมีโลก (กิโลเมตร)
+function getLonLat(p: PlaceItem, i: number): [number, number] {
+  if (!p.location || p.location.type !== 'Point' || !Array.isArray(p.location.coordinates)) {
+    throw new Error(`PlaceItem[${i}] is missing a valid GeoJSON Point location`);
+  }
+  const [lon, lat] = p.location.coordinates;
+  if (
+    typeof lon !== 'number' || typeof lat !== 'number' ||
+    lon < -180 || lon > 180 || lat < -90 || lat > 90
+  ) {
+    throw new Error(`PlaceItem[${i}] has out-of-range coordinates [${lon}, ${lat}]`);
+  }
+  return [lon, lat];
+}
+
+// Haversine distance (กิโลเมตร)
+function haversineKm(a: PlaceItem, b: PlaceItem): number {
+  const [lon1, lat1] = getLonLat(a, -1);
+  const [lon2, lat2] = getLonLat(b, -1);
+  const R = 6371; // km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const lat1Rad = lat1 * Math.PI / 180;
-  const lat2Rad = lat2 * Math.PI / 180;
+  const lat1r = lat1 * Math.PI / 180;
+  const lat2r = lat2 * Math.PI / 180;
 
-  const h = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(dLon / 2) ** 2;
+  const h = Math.sin(dLat/2) ** 2 + Math.cos(lat1r) * Math.cos(lat2r) * Math.sin(dLon/2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/**
- * คำนวณระยะทางรวมของเส้นทางตามลำดับดัชนีในอาร์เรย์ places
- * @param places อาร์เรย์ของ Place
- * @param indices ลำดับ index ของสถานที่ตามเส้นทาง
- * @returns ระยะทางรวมของเส้นทาง (กิโลเมตร)
- */
-function pathDistanceByIndices(places: place[], indices: number[]): number {
-  let total = 0;
-  for (let i = 0; i < indices.length - 1; i++) {
-    total += distanceBetweenPlaces(places[indices[i]], places[indices[i + 1]]);
+function pathDistanceKmByIndices(places: PlaceItem[], idx: number[]): number {
+  let sum = 0;
+  for (let i = 0; i < idx.length - 1; i++) {
+    sum += haversineKm(places[idx[i]], places[idx[i+1]]);
   }
-  return total;
+  return sum;
 }
 
-/**
- * ตัวสร้าง Permutation ของอาร์เรย์ (แบบ Generator)
- * @param arr อาร์เรย์ข้อมูล
- * @param start ตำแหน่งเริ่มต้น (ใช้ภายใน recursion)
- * @yields แต่ละ Permutation ของอาร์เรย์
- */
+// สร้าง permutation แบบง่าย
 function* permutations<T>(arr: T[], start = 0): Generator<T[]> {
   if (start >= arr.length - 1) {
     yield arr.slice();
@@ -55,68 +52,54 @@ function* permutations<T>(arr: T[], start = 0): Generator<T[]> {
 }
 
 /**
- * คำนวณเส้นทาง TSP แบบมีจุดเริ่มและจุดสิ้นสุด โดยไม่ใช้ solveTSPWithStartEnd
- * (Brute-force: ลองทุกลำดับของจุดกลาง เลือกระยะทางที่สั้นที่สุด)
- *
- * @param places รายการสถานที่ทั้งหมด (Place[])
- * @param startPlaceId place_id ของจุดเริ่มต้น
- * @param endPlaceId place_id ของจุดสิ้นสุด
- * @returns วัตถุ { path: Place[], distance: number }
- *          - path: ลำดับสถานที่ตามเส้นทางที่สั้นที่สุด
- *          - distance: ระยะทางรวม (กิโลเมตร)
- *
- * @throws Error ถ้าจำนวนสถานที่น้อยกว่า 2 หรือหา start/end ไม่พบ
- *
- * @note วิธีนี้มีความซับซ้อน O(n!) กับจำนวนจุดกลาง
- *       ใช้ได้กับจำนวนจุดไม่เยอะ (< 10) ถ้าจุดเยอะควรใช้ heuristic หรือ DP
+ * หาเส้นทางสั้นสุด (กม.) โดยตรึงจุดแรกเป็น start และจุดสุดท้ายเป็น end
+ * คืน { path, distance } โดย:
+ *  - path: PlaceItem[] ตามลำดับเดินทาง
+ *  - distance: ระยะรวมหน่วยกิโลเมตร (approx ด้วย Haversine)
  */
 export function solveTSPFromPlaces(
-  places: place[],
-  startPlaceId: string,
-  endPlaceId: string
-): { path: place[]; distance: number } {
-  if (!places || places.length < 2) {
+  places: PlaceItem[]
+): { path: PlaceItem[]} {
+  if (!Array.isArray(places) || places.length < 2) {
     throw new Error('Need at least two places (start and end).');
   }
 
-  const startIndex = places.findIndex(p => p.id === startPlaceId);
-  if (startIndex < 0) throw new Error(`startPlaceId not found: ${startPlaceId}`);
-
-  const endIndex = places.findIndex(p => p.id === endPlaceId);
-  if (endIndex < 0) throw new Error(`endPlaceId not found: ${endPlaceId}`);
-
-  // ดัชนีของจุดกลาง (ไม่นับ start/end)
-  const intermediate: number[] = [];
+  // ตรวจพิกัดทุกจุดให้ครบก่อน (จะได้ fail ไว)
   for (let i = 0; i < places.length; i++) {
-    if (i !== startIndex && i !== endIndex) intermediate.push(i);
+    getLonLat(places[i], i);
   }
 
-  // กรณีมีจุดกลาง ≤ 1 คำนวณตรงๆ
-  if (intermediate.length < 2) {
-    const simplePath = [startIndex, ...intermediate, endIndex];
-    const dist = pathDistanceByIndices(places, simplePath);
-    return { path: simplePath.map(i => places[i]), distance: dist };
+  const n = places.length;
+  const start = 0;
+  const end = n - 1;
+
+  // ดัชนีของจุดกลาง
+  const midIdx: number[] = [];
+  for (let i = 1; i < n - 1; i++) midIdx.push(i);
+
+  // ไม่มี/มีจุดกลาง 1 จุด → ตอบตรง ๆ
+  if (midIdx.length < 2) {
+    const order = [start, ...midIdx, end];
+    return { path: order.map(i => places[i])};
   }
 
-  // หาลำดับที่สั้นที่สุด
+  // brute-force เฉพาะจุดกลาง
   let bestOrder: number[] | null = null;
-  let bestDistance = Infinity;
+  let bestDist = Infinity;
 
-  for (const perm of permutations(intermediate.slice())) {
-    const candidate = [startIndex, ...perm, endIndex];
-    const dist = pathDistanceByIndices(places, candidate);
-    if (dist < bestDistance) {
-      bestDistance = dist;
+  for (const perm of permutations(midIdx.slice())) {
+    const candidate = [start, ...perm, end];
+    const dist = pathDistanceKmByIndices(places, candidate);
+    if (dist < bestDist) {
+      bestDist = dist;
       bestOrder = candidate;
     }
   }
 
   if (!bestOrder) {
-    // fallback
-    const fallback = [startIndex, ...intermediate, endIndex];
-    const dist = pathDistanceByIndices(places, fallback);
-    return { path: fallback.map(i => places[i]), distance: dist };
+    const fallback = [start, ...midIdx, end];
+    return { path: fallback.map(i => places[i])};
   }
 
-  return { path: bestOrder.map(i => places[i]), distance: bestDistance };
+  return { path: bestOrder.map(i => places[i])};
 }

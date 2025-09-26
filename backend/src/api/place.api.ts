@@ -1,4 +1,4 @@
-// src/api/register.api.ts
+// .src/api/register.api.ts
 
 import 'dotenv/config'
 import { Router, Request, Response } from 'express';

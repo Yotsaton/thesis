@@ -1,7 +1,7 @@
 // src/trip/function/updateTrip.api.ts
 import { type RequestHandler } from "express";
-import { success, z } from "zod";
-import { type AuthenticatedRequest, ParamSchema, UpdateBodySchema } from "../types/api.type";
+import {type AuthenticatedRequest} from "../../middleware/type.api";
+import { ParamSchema, UpdateBodySchema } from "../types/api.type";
 import { updateMyTrip } from "../function/updateTrip"; // ← ใช้ฟังก์ชันที่คุณมีอยู่
 import { UpdateOptions } from "../types/type";
 

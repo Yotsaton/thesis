@@ -1,4 +1,4 @@
-// src/api/user.api.ts
+// .src/api/user.api.ts
 import { Router } from 'express';
 import {registerUser, sendOTP, resendOTP, verifyOTP,
   login, logout, me, requestResetLink, confirmResetWithLink,
