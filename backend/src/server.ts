@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 
 import user from "./api/auth.api";
 import trip from "./api/trip.api";
-//import routeapi from "./api/route.api";
+import routeapi from "./api/route.api";
 import processPlaces from "./api/place.api";
 
 import "./job/presence-cleaner";
@@ -26,7 +26,7 @@ app.get('/api/v1', (req, res) => {
 
 app.use("/api/v1/auth", user)
 app.use("/api/v1/auth/trip", trip)
-// //app.use("/api/v1/route", routeapi) // คำนวณเส้นทาง
+app.use("/api/v1/auth/route", routeapi)
 // app.use("/api/places",processPlaces)
  
 app.listen(port, () => {
