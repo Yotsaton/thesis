@@ -1,8 +1,9 @@
+//src/components/Map.ts
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
 import { debounce } from '../helpers/utils.js';
-import type { Day, PlaceItem } from '../state/index.js';
+import type { Day, PlaceItem } from '../types.js'; // ⬅️ แก้ไข: import Type จากที่ใหม่
 
 // --- Type Definitions for Google Maps Objects ---
 type GoogleMap = google.maps.Map;
@@ -14,7 +15,7 @@ type LatLngBounds = google.maps.LatLngBounds;
 type DirectionsResult = google.maps.DirectionsResult;
 type DirectionsStatus = google.maps.DirectionsStatus;
 
-// --- Module State Variables with Types ---
+// --- Module State Variables ---
 let map: GoogleMap;
 let markers: GoogleMarker[] = [];
 let dailyDirectionRenderers: DirectionsRenderer[] = [];
@@ -28,7 +29,7 @@ const mapReadyPromise = new Promise<boolean>(resolve => {
   mapReadyPromiseResolver = resolve;
 });
 
-// --- Functions with Types ---
+// --- Functions ---
 export function clearTemporaryMarker(): void {
   if (temporaryMarker) {
     temporaryMarker.setMap(null);
@@ -55,7 +56,7 @@ export async function fetchAndDisplayPlaceDetails(placeId: string, dayIndex: num
     if (!mapsApiReady) await mapReadyPromise;
     try {
         const svc = new google.maps.places.PlacesService(map);
-        const req = { placeId, fields: ['place_id','name','formatted_address','geometry','rating','user_ratings_total','opening_hours','url','photos'] };
+        const req = { placeId, fields: ['place_id','name','formatted_address','geometry','rating','user_ratings_total','opening_hours','url','photos', 'editorial_summary', 'formatted_phone_number'] };
         svc.getDetails(req, (place, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && place) {
                 panToAndHighlightPlace(place as unknown as PlaceDetails);
@@ -88,7 +89,13 @@ function onMapsApiLoaded(): void {
     if (e.latLng) {
         geocoder.geocode({ location: e.latLng }, (results, status) => {
             if (status === 'OK' && results && results[0]) {
-                renderPlaceDetailsPanel(results[0] as unknown as PlaceDetails);
+                 const placeData: PlaceDetails = {
+                    name: results[0].formatted_address,
+                    formatted_address: results[0].formatted_address,
+                    geometry: { location: e.latLng! }
+                };
+                panToAndHighlightPlace(placeData);
+                renderPlaceDetailsPanel(placeData);
             }
         });
     }
@@ -133,7 +140,7 @@ const debouncedRouteCalculation = debounce((routesToCalc: any[]) => {
 }, 500);
 
 export function renderMapMarkersAndRoute(): void {
-    if (!mapsApiReady || !map) return; // เพิ่มการตรวจสอบ map
+    if (!mapsApiReady || !map) return;
     const days: Day[] = appState.currentTrip.days;
     const focusedDayIndex = appState.activeDayIndex;
 
@@ -146,34 +153,44 @@ export function renderMapMarkersAndRoute(): void {
 
     const bounds: LatLngBounds = new google.maps.LatLngBounds();
     let overallIndex = 1;
-    const routesToCalc: any[] = [];
     
-    days.forEach((day, dayIndex) => {
-        const placesOnly = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location);
+    days.forEach((day: Day, dayIndex: number) => {
+        const placesOnly = (day.items || []).filter((item): item is PlaceItem => 
+            item.type === 'place' && 
+            !!item.location && 
+            Array.isArray(item.location.coordinates) && 
+            item.location.coordinates.length === 2
+        );
+        
         const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
         if (isVisible && placesOnly.length > 0) {
-            placesOnly.forEach((p) => {
-                const position = { lat: p.location.lat, lng: p.location.lng };
-                const marker = new google.maps.Marker({
-                    position, map, 
-                    icon: createColoredMarkerIcon(day.color),
-                    label: { text: String(overallIndex), color: 'white', fontWeight: 'bold' }, title: p.name
-                });
-                markers.push(marker);
-                bounds.extend(position);
-                overallIndex++;
+            placesOnly.forEach((p: PlaceItem) => {
+                if (p.location) {
+                    const position = { lat: p.location.coordinates[1], lng: p.location.coordinates[0] };
+                    const marker = new google.maps.Marker({
+                        position, map, 
+                        icon: createColoredMarkerIcon(day.color),
+                        label: { text: String(overallIndex), color: 'white', fontWeight: 'bold' }, title: p.name
+                    });
+                    markers.push(marker);
+                    bounds.extend(position);
+                    overallIndex++;
+                }
             });
         }
     });
-
+    
+    const routesToCalc: any[] = [];
     const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
-    daysToRoute.forEach((day) => {
-        const placesOnly = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location);
+    daysToRoute.forEach((day: Day) => {
+        const placesOnly = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location && Array.isArray(i.location.coordinates) && i.location.coordinates.length === 2);
         if (placesOnly.length >= 2) {
+            const originCoords = placesOnly[0].location!.coordinates;
+            const destCoords = placesOnly[placesOnly.length - 1].location!.coordinates;
             routesToCalc.push({
-                origin: placesOnly[0].location,
-                destination: placesOnly[placesOnly.length - 1].location,
-                waypoints: placesOnly.slice(1, -1).map(p => ({ location: p.location, stopover: true })),
+                origin: { lat: originCoords[1], lng: originCoords[0] },
+                destination: { lat: destCoords[1], lng: destCoords[0] },
+                waypoints: placesOnly.slice(1, -1).map(p => ({ location: { lat: p.location!.coordinates[1], lng: p.location!.coordinates[0] }, stopover: true })),
                 color: day.color
             });
         }
@@ -183,7 +200,6 @@ export function renderMapMarkersAndRoute(): void {
 
     if (markers.length > 0) {
         map.fitBounds(bounds);
-        // เพิ่ม listener 'idle' เพื่อรอให้ map จัดตำแหน่งเสร็จก่อนเช็ค zoom
         google.maps.event.addListenerOnce(map, 'idle', () => {
             if (map.getZoom()! > 17) {
                 map.setZoom(17);

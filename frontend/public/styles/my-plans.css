@@ -56,10 +56,11 @@ body {
     color: #666;
 }
 
-.plan-card .dates {
-    font-style: italic;
-    color: #888;
-    margin-bottom: 15px;
+.plan-card .updated-date {
+    font-size: 12px;
+    color: #999;
+    text-align: right;
+    margin-top: 5px;
 }
 
 .plan-actions {

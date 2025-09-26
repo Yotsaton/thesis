@@ -1,9 +1,12 @@
-//src/components/PlaceCard.ts
+// src/components/Placecards.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';
-import type { PlaceItem } from '../state/index.js'; // ⬅️ 1. Import Type เข้ามา
+import type { PlaceItem } from '../types.js'; // ⬅️ แก้ไข: ลบ DayItem ที่ไม่ได้ใช้ออก
+
+// บอก TypeScript ให้รู้จัก Flatpickr ที่มาจาก global scope
+declare var flatpickr: any;
 
 const debouncedSaveAndRender = debounce(async () => {
   try {
@@ -15,7 +18,6 @@ const debouncedSaveAndRender = debounce(async () => {
   }
 }, 800);
 
-// 2. กำหนด Type ให้กับพารามิเตอร์
 export function createPlaceCardElement(
   place: PlaceItem,
   itemIndex: number,
@@ -43,19 +45,17 @@ export function createPlaceCardElement(
         <button class="del-place-btn" title="Delete Item"><i class='bx bx-x'></i></button>
       </div>
       <div class="place-times">
-        <input type="time" class="start-time" value="${place.startTime || ''}" />
+        <input type="text" class="start-time flatpickr-time-input" placeholder="--:--" value="${place.startTime || ''}" />
         <span>–</span>
-        <input type="time" class="end-time" value="${place.endTime || ''}" />
+        <input type="text" class="end-time flatpickr-time-input" placeholder="--:--" value="${place.endTime || ''}" />
       </div>
     </div>
     <div class="travel-info" id="travel-info-${dayIndex}-${itemIndex}"></div>
   `;
 
-  // 3. ตรวจสอบ Element ก่อนใช้งาน
   const deleteButton = placeCard.querySelector<HTMLButtonElement>('.del-place-btn');
   if (deleteButton) {
     deleteButton.addEventListener('click', async () => {
-      // ตรวจสอบให้แน่ใจว่า currentTrip และ days มีอยู่จริง
       if (appState.currentTrip?.days?.[dayIndex]?.items) {
         appState.currentTrip.days[dayIndex].items.splice(itemIndex, 1);
         const tripService = await getTripService();
@@ -65,32 +65,40 @@ export function createPlaceCardElement(
     });
   }
 
+  const timePickerOptions = {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true,
+  };
+
   const startTimeInput = placeCard.querySelector<HTMLInputElement>('.start-time');
   if (startTimeInput) {
-    startTimeInput.addEventListener('change', (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      if (appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex]) {
-        // TypeScript ช่วยให้เรารู้ว่า item อาจเป็น NoteItem ได้ เราจึงต้องเช็ค type ก่อน
-        const item = appState.currentTrip.days[dayIndex].items[itemIndex];
-        if (item.type === 'place') {
-          item.startTime = target.value;
-          debouncedSaveAndRender();
+    // 🔽 แก้ไข: เพิ่ม Type และลบตัวแปรที่ไม่ได้ใช้ 🔽
+    flatpickr(startTimeInput, {
+        ...timePickerOptions,
+        onChange: function(_selectedDates: Date[], dateStr: string) { // ใช้ _ เพื่อบอกว่าไม่ใช้ตัวแปรนี้
+            const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
+            if (item && item.type === 'place') {
+                item.startTime = dateStr;
+                debouncedSaveAndRender();
+            }
         }
-      }
     });
   }
 
   const endTimeInput = placeCard.querySelector<HTMLInputElement>('.end-time');
   if (endTimeInput) {
-    endTimeInput.addEventListener('change', (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      if (appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex]) {
-        const item = appState.currentTrip.days[dayIndex].items[itemIndex];
-        if (item.type === 'place') {
-          item.endTime = target.value;
-          debouncedSaveAndRender();
+    // 🔽 แก้ไข: เพิ่ม Type และลบตัวแปรที่ไม่ได้ใช้ 🔽
+    flatpickr(endTimeInput, {
+        ...timePickerOptions,
+        onChange: function(_selectedDates: Date[], dateStr: string) { // ใช้ _ เพื่อบอกว่าไม่ใช้ตัวแปรนี้
+            const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
+            if (item && item.type === 'place') {
+                item.endTime = dateStr;
+                debouncedSaveAndRender();
+            }
         }
-      }
     });
   }
   

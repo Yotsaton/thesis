@@ -1,6 +1,6 @@
 //src/pages/my-plans/index.ts
 import { getTripService } from "../../services/config.js";
-import type { Trip } from "../../state/index.js"; // ⬅️ 1. Import Type 'Trip' เข้ามา
+import type { Trip } from "../../types.js";
 
 // --- DOM Elements with Types ---
 const gridContainer = document.getElementById('plans-grid-container');
@@ -12,18 +12,24 @@ function createPlanCard(trip: Trip): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'plan-card';
 
-  // ใช้ Optional Chaining (?.) เพื่อความปลอดภัยหาก createdAt/updatedAt ไม่มีค่า
-  const createdAt = trip.createdAt 
-    ? new Date(trip.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
-    : 'N/A';
-  const updatedAt = trip.updatedAt 
-    ? new Date(trip.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
-    : 'N/A';
-  
+  // 🔽 1. แก้ไข: ดึงข้อมูลวันที่เริ่มและสิ้นสุด และจัดรูปแบบการแสดงผลใหม่ 🔽
+  const formatDate = (dateString: string | undefined) => {
+    return dateString
+      ? new Date(dateString).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'ยังไม่ได้กำหนด';
+  };
+
+  const startDate = formatDate(trip.start_plan);
+  const endDate = formatDate(trip.end_plan);
+  const updatedAt = trip.updatedAt
+    ? `แก้ไขล่าสุด: ${new Date(trip.updatedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : '';
+
   card.innerHTML = `
     <h2>${trip.name}</h2>
-    <p class="dates">Created: ${createdAt}</p>
-    <p class="dates">Last updated: ${updatedAt}</p>
+    <p class="dates"><strong>จาก:</strong> ${startDate}</p>
+    <p class="dates"><strong>ถึง:</strong> ${endDate}</p>
+    <p class="dates updated-date">${updatedAt}</p>
     <div class="plan-actions">
       <button class="btn-load">Load</button>
       <button class="btn-delete">Delete</button>
@@ -33,8 +39,8 @@ function createPlanCard(trip: Trip): HTMLDivElement {
   const loadButton = card.querySelector<HTMLButtonElement>('.btn-load');
   if (loadButton && trip.id) {
     loadButton.addEventListener('click', () => {
-      localStorage.setItem('activeTripId', trip.id!); // ใช้ Non-null assertion (!) เพราะเราเช็คแล้วว่า trip._id มีค่า
-      window.location.href = '/my-plans.html'; // Path ที่ถูกต้องสำหรับ Vite
+      localStorage.setItem('activeTripId', trip.id!);
+      window.location.href = '/index.html';
     });
   }
 
@@ -65,8 +71,8 @@ async function renderPlans(): Promise<void> {
     const trips: Trip[] = data.trips;
     trips
       .sort((a, b) => 
-        new Date(b.updatedAt || b.createdAt || 0).getTime() - 
-        new Date(a.updatedAt || a.createdAt || 0).getTime()
+        new Date(b.updatedAt || 0).getTime() - 
+        new Date(a.updatedAt || 0).getTime()
       )
       .forEach(trip => {
         const card = createPlanCard(trip);
@@ -79,7 +85,6 @@ async function renderPlans(): Promise<void> {
 document.addEventListener('DOMContentLoaded', () => {
     if (backToPlannerBtn) {
         backToPlannerBtn.addEventListener('click', () => {
-            // Path ที่ถูกต้องสำหรับ Vite
             window.location.href = '/index.html'; 
         });
     }
@@ -87,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newPlanCard) {
         newPlanCard.addEventListener('click', () => {
             localStorage.removeItem('activeTripId');
-            // Path ที่ถูกต้องสำหรับ Vite
             window.location.href = '/index.html'; 
         });
     }

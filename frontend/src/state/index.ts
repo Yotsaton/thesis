@@ -1,54 +1,7 @@
-//src/state/index.js
-
+// state/index.ts
 import { getTripService } from '../services/config.js';
-
-// --- สร้าง "พิมพ์เขียว" (Interfaces & Types) สำหรับโครงสร้างข้อมูลทั้งหมด ---
-// สามารถย้าย Type เหล่านี้ไปไว้ในไฟล์กลาง src/types.ts ในอนาคตได้
-
-// interface support
-export interface geoJSONPoint {
-  type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
-}
-
-export type DateYMD = string; // 'YYYY-MM-DD'
-export type Time = string; // 'HH:mmZ'
-
-
-export type DayItem = {
-  id: string | null;
-  place_id?: string; // id from database
-  location?: geoJSONPoint; // lng, lat
-  name?: string;
-  text?: string;
-  startTime?: Time;
-  endTime?: Time;
-}
-
-export interface Day {
-  id: string | null;
-  date: DateYMD;
-  subheading: string;
-  items: DayItem[];
-  updatedAt?: string;
-  color: string;
-}
-
-export interface Trip {
-  id: string | null;
-  name: string;
-  start_plan?: string;
-  end_plan?: string;
-  days: Day[];
-  updatedAt?: string;
-}
-
-export interface AppState {
-  trips: Trip[];
-  currentTripId: string | null;
-  currentTrip: Trip;
-  activeDayIndex: number | null;
-}
+// 🔽 1. ลบ interface เดิมออก แล้ว import Type ทั้งหมดมาจากที่ใหม่ 🔽
+import type { Trip, Day, PlaceItem, AppState } from '../types.js';
 
 // --- กำหนด Type ให้กับ appState object ---
 export const appState: AppState = {
@@ -72,7 +25,7 @@ async function saveCurrentTrip(): Promise<void> {
     }
 }
 
-// --- กำหนด Type ให้กับพารามิเตอร์ของฟังก์ชันทั้งหมด ---
+// --- ฟังก์ชันทั้งหมดตอนนี้จะใช้ Type ที่ import เข้ามา ---
 export function setTripList(trips: Trip[]): void {
   appState.trips = trips;
 }
@@ -111,8 +64,8 @@ export function updateTripDays(newDays: Day[]): void {
 export function addPlaceToDay(
   dayIndex: number,
   name: string,
-  lat: number | string,
-  lng: number | string,
+  lat: number,
+  lng: number,
   place_id: string = ''
 ): void {
   const day = appState.currentTrip?.days[dayIndex];
@@ -122,11 +75,13 @@ export function addPlaceToDay(
     day.items = [];
   }
 
-  const newPlace: DayItem = {
+  // 🔽 2. แก้ไข newPlace ให้ใช้ interface ที่ถูกต้อง และรูปแบบ GeoJSON ใหม่ 🔽
+  const newPlace: PlaceItem = {
+    type: 'place',
     id: 'p_' + Date.now(),
     name: name || 'Pinned location',
     place_id: place_id || '',
-    location: { coordinates: [parseFloat(lng as string), parseFloat(lat as string)], type: 'Point' },
+    location: { type: 'Point', coordinates: [lng, lat] }, // [longitude, latitude]
     startTime: '',
     endTime: ''
   };

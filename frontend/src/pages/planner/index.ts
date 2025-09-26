@@ -1,3 +1,4 @@
+//src/pages/planer/index.ts
 import { appState, setActiveDayIndex, createNewLocalTrip, updateCurrentTripName, addPlaceToDay } from '../../state/index.js';
 import { getTripService } from '../../services/config.js';
 import { renderSidebar } from '../../components/Sidebar.js';

@@ -1,15 +1,11 @@
-//src/components/Itinerary.ts
-
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { createDaySectionElement } from './DaySection.js';
 import { renderMapMarkersAndRoute } from './Map.js';
-import type { Day } from '../state/index.js';
+import type { Day } from '../types.js'; // ⬅️ 1. แก้ไข: import Type จากที่ใหม่
 
 // --- Type Definitions ---
-// บอก TypeScript ให้รู้จัก Library ภายนอก (SortableJS)
-// และสร้าง Type สำหรับ Event object ของ Sortable (evt)
 declare class Sortable {
   static create(el: HTMLElement, options: object): Sortable;
   destroy(): void;
@@ -22,7 +18,6 @@ interface SortableEvent {
   newIndex: number | undefined;
 }
 
-// สร้าง Type เฉพาะสำหรับ container ที่มี property sortableInstance เพิ่มเข้ามา
 interface SortableContainer extends HTMLElement {
     sortableInstance?: Sortable;
 }
@@ -47,7 +42,6 @@ function initializeSortable(): void {
       animation: 150,
       ghostClass: 'sortable-ghost',
       onEnd: async (evt: SortableEvent) => {
-        // เพิ่มการตรวจสอบค่า null/undefined จาก event object
         const oldDayEl = evt.from.closest('.day-section') as HTMLElement;
         const newDayEl = evt.to.closest('.day-section') as HTMLElement;
 
@@ -56,7 +50,6 @@ function initializeSortable(): void {
         const oldElementIndex = evt.oldIndex;
         const newElementIndex = evt.newIndex;
         
-        // ตรวจสอบให้แน่ใจว่าค่าทั้งหมดที่จำเป็นมีอยู่ครบ
         if (oldDayIndex < 0 || newDayIndex < 0 || oldElementIndex === undefined || newElementIndex === undefined) {
             console.error('Sortable event failed to provide necessary data.');
             return;

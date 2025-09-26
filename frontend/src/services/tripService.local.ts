@@ -1,14 +1,26 @@
-// src/services/tripService.local.ts
-import { appState, setTripList, setCurrentTrip } from "../state/index";
-import type { Trip } from '../types';
+import { appState, setTripList, setCurrentTrip } from "../state/index.js";
+import type { Trip } from '../state/index.js'; // ⬅️ import Type จาก state โดยตรง
 
 const STORAGE_KEY = "tiewthai_trips";
+let saveTimeout: number;
+
+function updateSaveStatus(message: string, isError: boolean = false): void {
+  const statusEl = document.getElementById("save-status");
+  if (!statusEl) return;
+  
+  statusEl.textContent = message;
+  statusEl.style.color = isError ? "#ffadad" : "#d8f1d8";
+  
+  window.clearTimeout(saveTimeout);
+  if (message) {
+    saveTimeout = window.setTimeout(() => { if(statusEl) statusEl.textContent = ""; }, 3000);
+  }
+}
 
 function getTripsFromStorage(): Trip[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    const parsed = data ? JSON.parse(data) : [];
-    return Array.isArray(parsed) ? (parsed as Trip[]) : [];
+    return data ? JSON.parse(data) : [];
   } catch (e) {
     console.error("Failed to parse trips from storage:", e);
     return [];
@@ -27,7 +39,8 @@ export async function loadTripList(): Promise<{ success: boolean; trips: Trip[] 
 
 export async function loadTrip(tripId: string): Promise<{ success: boolean; trip?: Trip; message?: string }> {
   const trips = getTripsFromStorage();
-  const trip = trips.find((t) => t._id === tripId);
+  // 🔽 ใช้ id ในการค้นหา 🔽
+  const trip = trips.find((t) => t.id === tripId);
   if (trip) {
     setCurrentTrip(trip);
     return { success: true, trip };
@@ -35,50 +48,48 @@ export async function loadTrip(tripId: string): Promise<{ success: boolean; trip
   return { success: false, message: "Trip not found" };
 }
 
-export async function saveCurrentTrip(): Promise<{ success: boolean; trips?: Trip[]; skipped?: boolean; reused?: boolean }> {
+export async function saveCurrentTrip(): Promise<{ success: boolean; trip?: Trip; message?: string }> {
   const { currentTrip, currentTripId } = appState;
 
-  if (!currentTrip?.name || currentTrip.name.trim() === "") {
+  if (!currentTrip?.name?.trim() || !currentTrip.days?.length) {
     alert("Trip name cannot be empty.");
-    return { success: false };
-  }
-  if (!Array.isArray(currentTrip.days) || currentTrip.days.length === 0) {
-    return { success: true, skipped: true };
+    return { success: false, message: "Trip name is empty" };
   }
 
+  updateSaveStatus("Saving...");
   let trips = getTripsFromStorage();
+  let savedTrip: Trip | undefined;
   
-  const updatedTrip: Trip = {
+  const tripToSave: Trip = {
       ...currentTrip,
       updatedAt: new Date().toISOString()
   };
 
   if (currentTripId) {
-    trips = trips.map((t) =>
-      t._id === currentTripId ? { ...updatedTrip, _id: currentTripId } : t
-    );
+    // UPDATE
+    savedTrip = { ...tripToSave, id: currentTripId };
+    trips = trips.map((t) => t.id === currentTripId ? savedTrip : t);
   } else {
-    // ... (ส่วนที่เหลือเหมือนเดิม แต่ควรใช้ updatedTrip) ...
-    const newId = "trip_" + Date.now();
-    const newTrip: Trip = {
-      ...updatedTrip,
-      _id: newId,
+    // CREATE
+    const newId = "local_trip_" + Date.now();
+    savedTrip = {
+      ...tripToSave,
+      id: newId,
       createdAt: new Date().toISOString(),
     };
-    trips.push(newTrip);
-    setCurrentTrip(newTrip);
-    if (!appState.trips.some(t => t._id === newId)) {
-        appState.trips.push(newTrip);
-    }
+    trips.push(savedTrip);
+    setCurrentTrip(savedTrip);
   }
 
   saveTripsToStorage(trips);
-  return { success: true, trips };
+  updateSaveStatus("All changes saved ✅");
+  return { success: true, trip: savedTrip };
 }
 
 export async function deleteTrip(tripId: string): Promise<{ success: boolean }> {
   let trips = getTripsFromStorage();
-  trips = trips.filter((t) => t._id !== tripId);
+  // 🔽 ใช้ id ในการกรอง 🔽
+  trips = trips.filter((t) => t.id !== tripId);
   saveTripsToStorage(trips);
   appState.trips = trips;
   return { success: true };
