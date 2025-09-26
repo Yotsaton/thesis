@@ -1,3 +1,4 @@
+//src/components/Itinerary.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';

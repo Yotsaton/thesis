@@ -1,3 +1,4 @@
+//src/components/DaySection.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';
@@ -5,8 +6,7 @@ import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDis
 import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
-// 🔽 1. แก้ไข: import Type ทั้งหมดมาจากที่ใหม่ที่เดียว 🔽
-import type { Day, DayItem, PlaceItem, NoteItem, GeoJSONPoint } from '../types.js';
+import type { Day, DayItem, PlaceItem, NoteItem } from '../types.js';
 
 const DAILY_TIME_LIMIT_MINUTES = 1440;
 
@@ -29,7 +29,6 @@ function calculateStayDuration(startTime: string, endTime: string): number {
 }
 
 async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promise<void> {
-  // 🔽 2. แก้ไข: ใช้ Type Guard ที่ถูกต้อง 🔽
   const places = day.items.filter((i): i is PlaceItem => i.type === 'place');
   let totalTravelSeconds = 0;
   let totalStayMinutes = 0;
@@ -42,7 +41,6 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
   const placesWithLoc = places.filter(p => p.location);
   const routePromises = [];
   for (let i=0; i < placesWithLoc.length - 1; i++) {
-    // เพิ่มการตรวจสอบเพื่อให้แน่ใจว่า location และ coordinates มีอยู่จริง
     const origin = placesWithLoc[i]?.location?.coordinates;
     const destination = placesWithLoc[i+1]?.location?.coordinates;
     if (origin && destination) {
@@ -52,13 +50,17 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
   const routes = await Promise.all(routePromises);
   
   routes.forEach((route, i) => {
-    if (route?.legs?.[0]?.duration && route.legs[0].distance) {
+    // 🔽 เพิ่มการตรวจสอบให้รัดกุมขึ้นเพื่อแก้ Error 🔽
+    if (route && route.legs && route.legs.length > 0) {
       const leg = route.legs[0];
-      totalTravelSeconds += leg.duration.value;
-      const fromItemIndex = day.items.indexOf(placesWithLoc[i]);
-      const travelInfoEl = document.getElementById(`travel-info-${dayIndex}-${fromItemIndex}`);
-      if (travelInfoEl) {
-        travelInfoEl.innerHTML = `<i class='bx bxs-car'></i><span>${leg.duration.text}</span> · <span>${leg.distance.text}</span>`;
+      // ตรวจสอบให้แน่ใจว่า duration และ distance มีอยู่จริง
+      if (leg.duration && leg.distance) { 
+          totalTravelSeconds += leg.duration.value;
+          const fromItemIndex = day.items.indexOf(placesWithLoc[i]);
+          const travelInfoEl = document.getElementById(`travel-info-${dayIndex}-${fromItemIndex}`);
+          if (travelInfoEl) {
+            travelInfoEl.innerHTML = `<i class='bx bxs-car'></i><span>${leg.duration.text}</span> · <span>${leg.distance.text}</span>`;
+          }
       }
     }
   });
@@ -96,7 +98,7 @@ function renderItems(day: Day, dayIndex: number, container: HTMLElement): void {
   const lastPlaceId = placesOnly.length > 0 ? placesOnly[placesOnly.length - 1].id : null;
 
   day.items.forEach((item: DayItem, itemIndex: number) => {
-    let el: HTMLElement | undefined; // ⬅️ 3. แก้ไข: กำหนดให้ el อาจเป็น undefined ได้
+    let el: HTMLElement | undefined;
     switch(item.type){
       case 'place':
         const isFirst = item.id === firstPlaceId;
@@ -168,7 +170,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
   const addNoteButton = daySection.querySelector<HTMLButtonElement>('.add-note-btn');
   if(addNoteButton) {
     addNoteButton.addEventListener('click', async () => {
-      const newNote: NoteItem = { type: 'note', id: 'n' + Date.now() };
+      const newNote: NoteItem = { type: 'note', id: 'n' + Date.now(), text: '' };
       if (appState.currentTrip?.days[dayIndex]) {
         if (!appState.currentTrip.days[dayIndex].items) {
             appState.currentTrip.days[dayIndex].items = [];

@@ -320,6 +320,16 @@ html, body {
   margin-right: 4px;
 }
 
+/* Flatpickr Time Picker Styles */
+.flatpickr-time {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    border-radius: 8px;
+}
+
+.flatpickr-time .numInputWrapper {
+    width: 60px;
+}
+
 .place-times {
     display: flex;
     align-items: center;

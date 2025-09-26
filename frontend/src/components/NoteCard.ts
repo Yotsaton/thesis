@@ -3,7 +3,8 @@ import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';
-import type { NoteItem, DayItem } from '../state/index.js';
+// 🔽 1. แก้ไข: import Type ทั้งหมดมาจากที่ใหม่ที่เดียว 🔽
+import type { NoteItem, DayItem } from '../types.js';
 
 const debouncedSave = debounce(async () => {
     try {
@@ -42,7 +43,7 @@ export function createNoteCardElement(note: NoteItem, itemIndex: number, dayInde
       const target = e.target as HTMLTextAreaElement;
       const item: DayItem | undefined = appState.currentTrip.days[dayIndex].items[itemIndex];
       
-      // 🔽 เพิ่ม Type Guard ตรงนี้ 🔽
+      // 🔽 2. เพิ่ม Type Guard เพื่อตรวจสอบให้แน่ใจว่าเป็น NoteItem 🔽
       if (item && item.type === 'note') {
         item.text = target.value;
         debouncedSave();

@@ -1,3 +1,4 @@
+//src/auth/auth.ts
 import { login, register, validateOtp, resendOtp, forgotPassword } from './authService.js';
 
 // --- Helper Functions ---

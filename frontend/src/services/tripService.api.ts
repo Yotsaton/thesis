@@ -1,6 +1,5 @@
-// src/services/tripService.api.ts
 import { appState, setTripList, setCurrentTrip } from "../state/index.js";
-import type { Trip } from "../state/index.js"; // ⬅️ import Type จาก state โดยตรง
+import type { Trip } from "../types.js"; // ⬅️ 1. แก้ไข: import Type จากที่ใหม่
 
 let saveTimeout: number;
 
@@ -55,7 +54,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
 export async function loadTripList(): Promise<any> {
   const data = await apiRequest("/auth/trip/", { method: "GET" });
   if (data.success && Array.isArray(data.trips)) {
-    // 🔽 แปลงข้อมูล _id จาก backend เป็น id ที่ frontend ใช้
+    // 🔽 2. แปลงข้อมูล _id จาก backend เป็น id ที่ frontend ใช้
     const tripsForState: Trip[] = data.trips.map((trip: any) => ({
       ...trip,
       id: trip._id ?? null,
@@ -65,7 +64,6 @@ export async function loadTripList(): Promise<any> {
   return data;
 }
 
-// ยังไม่ได้ทำapi endpoint สำหรับดึง trip เดียว
 export async function loadTrip(tripId: string): Promise<any> {
   const data = await apiRequest(`/trips/${tripId}`, { method: "GET" });
   if (data.success && data.trip) {
@@ -83,7 +81,7 @@ export async function saveCurrentTrip(): Promise<any> {
     return { success: false, message: "Trip is empty" };
   }
   
-  // แปลง id กลับเป็น _id ก่อนส่งให้ backend
+  // 3. แปลง id กลับเป็น _id ก่อนส่งให้ backend (ถ้า backend ยังใช้ _id)
   const { id, ...tripToSend } = currentTrip;
 
   if (currentTripId) {

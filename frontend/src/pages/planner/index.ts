@@ -1,12 +1,12 @@
 //src/pages/planer/index.ts
-import { appState, setActiveDayIndex, createNewLocalTrip, updateCurrentTripName, addPlaceToDay } from '../../state/index.js';
+import { appState, createNewLocalTrip, updateCurrentTripName, addPlaceToDay } from '../../state/index.js';
 import { getTripService } from '../../services/config.js';
 import { renderSidebar } from '../../components/Sidebar.js';
 import { renderItinerary } from '../../components/Itinerary.js';
 import { initMap, renderMapMarkersAndRoute } from '../../components/Map.js';
 import { initFlatpickr } from '../../helpers/flatpickr.js';
 import { prettyDate } from '../../helpers/utils.js';
-import type { Day } from '../../state/index.js';
+import type { Day } from '../../types.js'; // ⬅️ 1. แก้ไข: import Type จากที่ใหม่
 
 // --- Save Status Functionality ---
 let statusTimeout: number;
