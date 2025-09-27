@@ -1,3 +1,4 @@
+//src/component/DaySection.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { optimizeDayRoute } from '../services/routeService.js';
@@ -201,6 +202,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
         const result = await optimizeDayRoute(placesToOptimize);
         
         if (result.success && result.ordered && result.route?.geometry) {
+          
           const newItems = day.items.map(item => {
             if (item.type === 'place') {
               return result.ordered!.find(p => p.id === item.id) || item;
@@ -212,6 +214,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
               if (a.type === 'place' && b.type === 'place') {
                   const aIndex = result.ordered!.findIndex(p => p.id === a.id);
                   const bIndex = result.ordered!.findIndex(p => p.id === b.id);
+                  if (aIndex === -1 || bIndex === -1) return 0;
                   return aIndex - bIndex;
               }
               return 0;

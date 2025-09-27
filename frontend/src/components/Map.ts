@@ -2,9 +2,8 @@
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
-import { debounce } from '../helpers/utils.js';
 import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
-import { getDirections, optimizeDayRoute } from '../services/routeService.js';
+import { getDirections } from '../services/routeService.js';
 
 
 // --- Type Definitions for Google Maps Objects ---
@@ -122,6 +121,10 @@ export function initMap(): Promise<boolean> {
 
 export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
     if (!map) return;
+
+    // ล้างเส้นทางเก่าของทุกวันก่อนวาดใหม่
+    dailyRoutePolylines.forEach(p => p.setMap(null));
+    dailyRoutePolylines = [];
 
     const path = routeGeometry.coordinates.map((coords: [number, number]) => ({
         lng: coords[0],
