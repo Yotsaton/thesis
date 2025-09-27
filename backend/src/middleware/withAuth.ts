@@ -1,6 +1,6 @@
 // src/middleware/withAuth.ts
 import type { RequestHandler } from "express";
-import type { AuthenticatedRequest } from "../trip/types/api.type";
+import type { AuthenticatedRequest } from "./type.api";
 
 export const withAuth = (handler: (req: AuthenticatedRequest, res: Parameters<RequestHandler>[1]) => ReturnType<RequestHandler>): RequestHandler => {
   return (req, res, next) => {

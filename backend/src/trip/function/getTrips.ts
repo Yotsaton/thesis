@@ -1,8 +1,8 @@
 // src/trip/function/getTrips.ts
 import { db } from "../../database/db-promise";
 import type { trip } from "../../database/database.types";
-import { Accessor, ListTripsOptions } from "../types/type";
-import { th } from "zod/v4/locales";
+import { ListTripsOptions } from "../types/type";
+import { Accessor } from "../../middleware/type.api";
 
 function toDateOnly(input?: string | Date): string | undefined {
   if (!input) return undefined;
