@@ -1,4 +1,3 @@
-//src/components/Map.ts
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
@@ -119,6 +118,7 @@ export function initMap(): Promise<boolean> {
 export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
     if (!map) return;
     
+    // ล้างเส้นทางเก่าของ "ทุกวัน" ก่อนวาดใหม่
     dailyRoutePolylines.forEach(p => p.setMap(null));
     dailyRoutePolylines = [];
 
@@ -156,7 +156,10 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
     
     days.forEach((day: Day, dayIndex: number) => {
         const placesOnly = (day.items || []).filter((item): item is PlaceItem => 
-            item.type === 'place' && !!item.location?.coordinates
+            item.type === 'place' && 
+            !!item.location && 
+            Array.isArray(item.location.coordinates) && 
+            item.location.coordinates.length === 2
         );
         
         const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
