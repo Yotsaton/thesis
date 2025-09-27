@@ -11,9 +11,6 @@ const router = Router();
 router.post("/", requireAuth, withAuth(getRouteapi as any));
 
 // GET /api/v1/auth/route
-// router.post("/withTSP", requireAuth, withAuth(getTSPWithRouteapi as any));
-
-//ทดสอบไม่ใช้ requireAuth, withAuth
-router.post("/withTSP",getTSPWithRouteapi);
+router.post("/withTSP", requireAuth, withAuth(getTSPWithRouteapi as any));
 
 export default router;

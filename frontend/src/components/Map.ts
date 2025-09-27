@@ -3,24 +3,22 @@ import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
 import { debounce } from '../helpers/utils.js';
-import type { Day, PlaceItem } from '../types.js'; // ⬅️ แก้ไข: import Type จากที่ใหม่
+import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
+// 🔽 1. Import service ใหม่เข้ามา 🔽
+import { getDirections, optimizeDayRoute } from '../services/routeService.js';
+
 
 // --- Type Definitions for Google Maps Objects ---
 type GoogleMap = google.maps.Map;
 type GoogleMarker = google.maps.Marker;
-type DirectionsRenderer = google.maps.DirectionsRenderer;
-type Geocoder = google.maps.Geocoder;
-type DirectionsService = google.maps.DirectionsService;
 type LatLngBounds = google.maps.LatLngBounds;
-type DirectionsResult = google.maps.DirectionsResult;
-type DirectionsStatus = google.maps.DirectionsStatus;
+
 
 // --- Module State Variables ---
 let map: GoogleMap;
 let markers: GoogleMarker[] = [];
-let dailyDirectionRenderers: DirectionsRenderer[] = [];
-let geocoder: Geocoder;
-let directionsService: DirectionsService;
+let dailyRoutePolylines: google.maps.Polyline[] = [];
+let geocoder: google.maps.Geocoder;
 let mapsApiReady = false;
 let temporaryMarker: GoogleMarker | null = null;
 
@@ -28,6 +26,7 @@ let mapReadyPromiseResolver: (value: boolean) => void;
 const mapReadyPromise = new Promise<boolean>(resolve => {
   mapReadyPromiseResolver = resolve;
 });
+
 
 // --- Functions ---
 export function clearTemporaryMarker(): void {
@@ -56,7 +55,10 @@ export async function fetchAndDisplayPlaceDetails(placeId: string, dayIndex: num
     if (!mapsApiReady) await mapReadyPromise;
     try {
         const svc = new google.maps.places.PlacesService(map);
-        const req = { placeId, fields: ['place_id','name','formatted_address','geometry','rating','user_ratings_total','opening_hours','url','photos', 'editorial_summary', 'formatted_phone_number'] };
+        const req = { 
+            placeId, 
+            fields: ['place_id','name','formatted_address','geometry','rating','user_ratings_total','opening_hours','url','photos', 'editorial_summary', 'formatted_phone_number'] 
+        };
         svc.getDetails(req, (place, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && place) {
                 panToAndHighlightPlace(place as unknown as PlaceDetails);
@@ -77,7 +79,6 @@ function onMapsApiLoaded(): void {
   const center = { lat: 13.7563, lng: 100.5018 };
   map = new google.maps.Map(mapElement, { center, zoom: 12, clickableIcons: true, gestureHandling: 'greedy', mapTypeControl: false });
   geocoder = new google.maps.Geocoder();
-  directionsService = new google.maps.DirectionsService();
 
   map.addListener('click', (e: google.maps.MapMouseEvent | google.maps.IconMouseEvent) => {
     clearTemporaryMarker();
@@ -109,7 +110,7 @@ export function initMap(): Promise<boolean> {
   window.onMapsApiLoaded = onMapsApiLoaded;
   const key = encodeURIComponent(CONFIG.GOOGLE_MAPS_API_KEY);
   const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places,directions&v=weekly&language=th&region=TH&callback=onMapsApiLoaded`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&v=weekly&language=th&region=TH&callback=onMapsApiLoaded`;
   script.async = true;
   script.defer = true;
   script.onerror = () => {
@@ -120,46 +121,25 @@ export function initMap(): Promise<boolean> {
   return mapReadyPromise;
 }
 
-const debouncedRouteCalculation = debounce((routesToCalc: any[]) => {
-  dailyDirectionRenderers.forEach(r => r.setMap(null));
-  dailyDirectionRenderers = [];
-  routesToCalc.forEach((routeInfo) => {
-    const req = { origin: routeInfo.origin, destination: routeInfo.destination, waypoints: routeInfo.waypoints, travelMode: google.maps.TravelMode.DRIVING };
-    directionsService.route(req, (result: DirectionsResult | null, status: DirectionsStatus) => {
-      if (status === google.maps.DirectionsStatus.OK && result) {
-        const renderer = new google.maps.DirectionsRenderer({
-          map, directions: result, suppressMarkers: true,
-          polylineOptions: { strokeColor: routeInfo.color, strokeWeight: 5, strokeOpacity: 0.8 }
-        });
-        dailyDirectionRenderers.push(renderer);
-      } else {
-        console.warn(`Directions failed: ${status}`);
-      }
-    });
-  });
-}, 500);
-
-export function renderMapMarkersAndRoute(): void {
+export async function renderMapMarkersAndRoute(): Promise<void> {
     if (!mapsApiReady || !map) return;
+
     const days: Day[] = appState.currentTrip.days;
     const focusedDayIndex = appState.activeDayIndex;
 
     markers.forEach(m => m.setMap(null));
     markers = [];
-    if (!days || days.length === 0) {
-      debouncedRouteCalculation([]);
-      return;
-    }
+    dailyRoutePolylines.forEach(p => p.setMap(null));
+    dailyRoutePolylines = [];
+
+    if (!days || days.length === 0) return;
 
     const bounds: LatLngBounds = new google.maps.LatLngBounds();
     let overallIndex = 1;
     
     days.forEach((day: Day, dayIndex: number) => {
         const placesOnly = (day.items || []).filter((item): item is PlaceItem => 
-            item.type === 'place' && 
-            !!item.location && 
-            Array.isArray(item.location.coordinates) && 
-            item.location.coordinates.length === 2
+            item.type === 'place' && !!item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2
         );
         
         const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
@@ -179,24 +159,37 @@ export function renderMapMarkersAndRoute(): void {
             });
         }
     });
-    
-    const routesToCalc: any[] = [];
-    const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
-    daysToRoute.forEach((day: Day) => {
-        const placesOnly = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location && Array.isArray(i.location.coordinates) && i.location.coordinates.length === 2);
-        if (placesOnly.length >= 2) {
-            const originCoords = placesOnly[0].location!.coordinates;
-            const destCoords = placesOnly[placesOnly.length - 1].location!.coordinates;
-            routesToCalc.push({
-                origin: { lat: originCoords[1], lng: originCoords[0] },
-                destination: { lat: destCoords[1], lng: destCoords[0] },
-                waypoints: placesOnly.slice(1, -1).map(p => ({ location: { lat: p.location!.coordinates[1], lng: p.location!.coordinates[0] }, stopover: true })),
-                color: day.color
-            });
-        }
-    });
 
-    debouncedRouteCalculation(routesToCalc);
+    const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
+    
+    for (const day of daysToRoute) {
+        const placesWithLoc = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location?.coordinates);
+        if (placesWithLoc.length >= 2) {
+            const origin = placesWithLoc[0].location!;
+            const destination = placesWithLoc[placesWithLoc.length - 1].location!;
+            const waypoints = placesWithLoc.slice(1, -1).map(p => p.location!);
+
+            // 🔽 2. เปลี่ยนมาเรียกใช้ optimizeDayRoute ที่ใช้ TSP 🔽
+            const result = await optimizeDayRoute(placesWithLoc);
+
+            if (result.success && result.route?.geometry?.coordinates) {
+                const path = result.route.geometry.coordinates.map((coords: [number, number]) => ({
+                    lng: coords[0],
+                    lat: coords[1]
+                }));
+
+                const routePolyline = new google.maps.Polyline({
+                    path: path,
+                    geodesic: true,
+                    strokeColor: day.color || '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 5
+                });
+                routePolyline.setMap(map);
+                dailyRoutePolylines.push(routePolyline);
+            }
+        }
+    }
 
     if (markers.length > 0) {
         map.fitBounds(bounds);
@@ -229,17 +222,26 @@ export function attachAutocompleteWhenReady(inputEl: HTMLInputElement, onPlaceSe
     });
 }
 
-export async function getDirectionsBetweenTwoPoints(origin: {lat: number, lng: number}, destination: {lat: number, lng: number}): Promise<google.maps.DirectionsRoute | null> {
+// 🔽 3. แก้ไข: ฟังก์ชันนี้จะเรียกใช้ Backend API ใหม่ 🔽
+export async function getDirectionsBetweenTwoPoints(
+    origin: { lat: number, lng: number }, 
+    destination: { lat: number, lng: number }
+): Promise<any> {
     if (!mapsApiReady) await mapReadyPromise;
-    if (!directionsService) return null;
     
-    const request = { origin, destination, travelMode: google.maps.TravelMode.DRIVING };
-    try {
-        const result = await directionsService.route(request);
-        if (result && result.routes.length > 0) return result.routes[0];
-        return null;
-    } catch (e) { 
-        console.error('Single directions request failed', e);
-        return null; 
+    const originGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [origin.lng, origin.lat] };
+    const destGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [destination.lng, destination.lat] };
+    
+    const result = await getDirections(originGeoJSON, destGeoJSON, []);
+
+    if (result.success && result.route) {
+        // สร้าง object ที่มีโครงสร้างคล้ายกับของ Google Maps เดิม เพื่อให้ DaySection.ts ทำงานได้
+        return {
+            legs: [{
+                distance: { text: `${(result.route.distance / 1000).toFixed(1)} km`, value: result.route.distance },
+                duration: { text: `${Math.round(result.route.duration / 60)} min`, value: result.route.duration }
+            }]
+        };
     }
+    return null;
 }
