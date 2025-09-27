@@ -184,15 +184,17 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
     for (const day of daysToRoute) {
         const placesWithLoc = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location?.coordinates);
         if (placesWithLoc.length >= 2) {
-            // วาดเส้นทางระหว่างแต่ละจุด (A->B, B->C, ...)
-            for (let i = 0; i < placesWithLoc.length - 1; i++) {
-                const origin = placesWithLoc[i].location!;
-                const destination = placesWithLoc[i+1].location!;
-                
-                const result = await getDirections(origin, destination, []);
-                if (result.success && result.route?.geometry?.coordinates) {
-                    drawRoutePolyline(day, result.route.geometry);
-                }
+            // เรียกใช้ getDirections เพื่อคำนวณเส้นทาง
+            const origin = placesWithLoc[0].location!;
+            const destination = placesWithLoc[placesWithLoc.length - 1].location!;
+            const waypoint = placesWithLoc.slice(1, -1).map(p => p.location!) || [];
+
+            const result = await getDirections(origin, destination, waypoint);
+            if (result.success && result.route?.geometry?.coordinates) {
+                drawRoutePolyline(day, result.route.geometry);
+            }
+            if (result.success && result.route) {
+                localStorage.setItem(`day-${day.id}-route-segments`, JSON.stringify(result.route.segments));
             }
         }
     }
@@ -229,24 +231,24 @@ export function attachAutocompleteWhenReady(inputEl: HTMLInputElement, onPlaceSe
     });
 }
 
-export async function getDirectionsBetweenTwoPoints(
-    origin: { lat: number, lng: number }, 
-    destination: { lat: number, lng: number }
-): Promise<any> {
-    if (!mapsApiReady) await mapReadyPromise;
+// export async function getDirectionsBetweenTwoPoints(
+//     origin: { lat: number, lng: number }, 
+//     destination: { lat: number, lng: number }
+// ): Promise<any> {
+//     if (!mapsApiReady) await mapReadyPromise;
     
-    const originGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [origin.lng, origin.lat] };
-    const destGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [destination.lng, destination.lat] };
+//     const originGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [origin.lng, origin.lat] };
+//     const destGeoJSON: GeoJSONPoint = { type: 'Point', coordinates: [destination.lng, destination.lat] };
     
-    const result = await getDirections(originGeoJSON, destGeoJSON, []);
+//     const result = await getDirections(originGeoJSON, destGeoJSON, []);
 
-    if (result.success && result.route) {
-        return {
-            legs: [{
-                distance: { text: `${(result.route.distance / 1000).toFixed(1)} km`, value: result.route.distance },
-                duration: { text: `${Math.round(result.route.duration / 60)} min`, value: result.route.duration }
-            }]
-        };
-    }
-    return null;
-}
+//     if (result.success && result.route) {
+//         return {
+//             legs: [{
+//                 distance: { text: `${(result.route.distance / 1000).toFixed(1)} km`, value: result.route.distance },
+//                 duration: { text: `${Math.round(result.route.duration / 60)} min`, value: result.route.duration }
+//             }]
+//         };
+//     }
+//     return null;
+// }

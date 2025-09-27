@@ -38,11 +38,11 @@ export async function getDirections(
   destination: GeoJSONPoint, 
   waypoints: GeoJSONPoint[] = []
 ): Promise<{ success: boolean; route?: any; message?: string }> {
-  return apiRequest('/route/', { origin, destination, waypoint: waypoints });
+  return apiRequest('/auth/route/', { origin, destination, waypoint: waypoints });
 }
 
 
 // ฟังก์ชันสำหรับเรียก API /route/withTSP (ฟังก์ชันนี้ถูกต้องอยู่แล้ว)
 export async function optimizeDayRoute(places: PlaceItem[]): Promise<{ success: boolean; ordered?: PlaceItem[]; route?: any; message?: string }> {
-  return apiRequest('/route/withTSP', { places });
+  return apiRequest('/auth/route/withTSP', { places });
 }

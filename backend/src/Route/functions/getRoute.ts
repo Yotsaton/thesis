@@ -53,7 +53,7 @@ export async function getRoute(
     },
     body: JSON.stringify({
       coordinates: coords,
-      instructions: false, // ไม่ต้องการ steps
+      instructions: true,
     }),
   });
 

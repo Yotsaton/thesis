@@ -3,7 +3,7 @@ import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
-import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDisplayPlaceDetails, drawRoutePolyline } from './Map.js';
+import { attachAutocompleteWhenReady, fetchAndDisplayPlaceDetails, drawRoutePolyline } from './Map.js';
 import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
@@ -41,16 +41,27 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
 
   const placesWithLoc = places.filter(p => p.location);
   const routePromises = [];
-  for (let i=0; i < placesWithLoc.length - 1; i++) {
-    const origin = placesWithLoc[i]?.location?.coordinates;
-    const destination = placesWithLoc[i+1]?.location?.coordinates;
-    if (origin && destination) {
-      routePromises.push(getDirectionsBetweenTwoPoints({lng: origin[0], lat: origin[1]}, {lng: destination[0], lat: destination[1]}));
+  //เว้นสถานที่แรก เพราะจุดเริ่มต้นไม่ต้องมี distance/duration
+  routePromises.push(null);
+  // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
+  const segmentsStr = localStorage.getItem(`day-${day.id}-route-segments`);
+  const segments = segmentsStr ? JSON.parse(segmentsStr) : null;
+  for (let i=0; i < placesWithLoc.length; i++) {
+    // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
+    if(segments && segments[i]) {
+      routePromises.push({
+        legs: [
+          {
+            distance: { text: `${(segments[i].distance / 1000).toFixed(1)} km`, value: segments[i].distance },
+            duration: { text: `${Math.round(segments[i].duration / 60)} min`, value: segments[i].duration }
+          }
+        ]
+      });
     }
   }
   const routes = await Promise.all(routePromises);
   
-  routes.forEach((route, i) => {
+  routes.forEach((route: any, i: number) => {
     if (route && route.legs && route.legs.length > 0) {
       const leg = route.legs[0];
       if (leg.duration && leg.distance) {

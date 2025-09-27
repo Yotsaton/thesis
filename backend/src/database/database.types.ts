@@ -70,9 +70,10 @@ export interface route{
   day_trip_id : string;       // FK from dat_trip table
   place_id : string | null;   // FK from place table
   created_at : Date;
-  note : any | null;
+  note : string | null;
   index : number ;
   updated_at : Date;
   start_time : Date | null;
   end_time : Date | null;
+  type : 'place' | 'note';
 }

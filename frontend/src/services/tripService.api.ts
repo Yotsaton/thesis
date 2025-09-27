@@ -65,7 +65,7 @@ export async function loadTripList(): Promise<any> {
 }
 
 export async function loadTrip(tripId: string): Promise<any> {
-  const data = await apiRequest(`/trips/${tripId}`, { method: "GET" });
+  const data = await apiRequest(`/auth/trips/${tripId}`, { method: "GET" });
   if (data.success && data.trip) {
     const tripForState: Trip = { ...data.trip, id: data.trip._id ?? null };
     setCurrentTrip(tripForState);
@@ -87,7 +87,7 @@ export async function saveCurrentTrip(): Promise<any> {
   if (currentTripId) {
     // UPDATE
     updateSaveStatus("Saving...");
-    const data = await apiRequest(`/trips/${currentTripId}`, {
+    const data = await apiRequest(`/auth/trips/${currentTripId}`, {
       method: "PUT",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripToSend),
