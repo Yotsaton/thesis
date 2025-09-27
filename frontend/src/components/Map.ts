@@ -115,12 +115,9 @@ export function initMap(): Promise<boolean> {
   return mapReadyPromise;
 }
 
+// 🔽 1. แก้ไข: ฟังก์ชันนี้จะ **ไม่ล้าง** Polyline เก่า แต่จะ **เพิ่ม** เส้นใหม่เข้าไป 🔽
 export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
     if (!map) return;
-    
-    // ล้างเส้นทางเก่าของ "ทุกวัน" ก่อนวาดใหม่
-    dailyRoutePolylines.forEach(p => p.setMap(null));
-    dailyRoutePolylines = [];
 
     const path = routeGeometry.coordinates.map((coords: [number, number]) => ({
         lng: coords[0],
@@ -144,6 +141,7 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
     const days: Day[] = appState.currentTrip.days;
     const focusedDayIndex = appState.activeDayIndex;
 
+    // 🔽 2. แก้ไข: การล้างจะเกิดขึ้นที่นี่ที่เดียว ก่อนการวาดใหม่ทั้งหมด 🔽
     markers.forEach(m => m.setMap(null));
     markers = [];
     dailyRoutePolylines.forEach(p => p.setMap(null));
@@ -180,7 +178,7 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
         }
     });
 
-    // 🔽 1. นำตรรกะการวาดเส้นทางพื้นฐานกลับเข้ามา 🔽
+    // 🔽 3. นำตรรกะการวาดเส้นทางพื้นฐานกลับเข้ามา 🔽
     const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
     
     for (const day of daysToRoute) {
