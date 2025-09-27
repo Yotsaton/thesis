@@ -4,7 +4,6 @@ import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
 import { debounce } from '../helpers/utils.js';
 import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
-// 🔽 1. Import service ใหม่เข้ามา 🔽
 import { getDirections, optimizeDayRoute } from '../services/routeService.js';
 
 
@@ -121,7 +120,26 @@ export function initMap(): Promise<boolean> {
   return mapReadyPromise;
 }
 
-export async function renderMapMarkersAndRoute(): Promise<void> {
+export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
+    if (!map) return;
+
+    const path = routeGeometry.coordinates.map((coords: [number, number]) => ({
+        lng: coords[0],
+        lat: coords[1]
+    }));
+
+    const routePolyline = new google.maps.Polyline({
+        path: path,
+        geodesic: true,
+        strokeColor: day.color || '#FF0000',
+        strokeOpacity: 0.8,
+        strokeWeight: 5
+    });
+    routePolyline.setMap(map);
+    dailyRoutePolylines.push(routePolyline);
+}
+
+export function renderMapMarkersAndRoute(): void {
     if (!mapsApiReady || !map) return;
 
     const days: Day[] = appState.currentTrip.days;
@@ -139,7 +157,10 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
     
     days.forEach((day: Day, dayIndex: number) => {
         const placesOnly = (day.items || []).filter((item): item is PlaceItem => 
-            item.type === 'place' && !!item.location && Array.isArray(item.location.coordinates) && item.location.coordinates.length === 2
+            item.type === 'place' && 
+            !!item.location && 
+            Array.isArray(item.location.coordinates) && 
+            item.location.coordinates.length === 2
         );
         
         const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
@@ -150,7 +171,7 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
                     const marker = new google.maps.Marker({
                         position, map, 
                         icon: createColoredMarkerIcon(day.color),
-                        label: { text: String(overallIndex), color: 'white', fontWeight: 'bold' }, title: p.name
+                        label: { text: String(overallIndex), color: 'white', fontWeight: 'bold' }, title: p.name ?? ''
                     });
                     markers.push(marker);
                     bounds.extend(position);
@@ -160,41 +181,11 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
         }
     });
 
-    const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
-    
-    for (const day of daysToRoute) {
-        const placesWithLoc = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location?.coordinates);
-        if (placesWithLoc.length >= 2) {
-            const origin = placesWithLoc[0].location!;
-            const destination = placesWithLoc[placesWithLoc.length - 1].location!;
-            const waypoints = placesWithLoc.slice(1, -1).map(p => p.location!);
-
-            // 🔽 2. เปลี่ยนมาเรียกใช้ optimizeDayRoute ที่ใช้ TSP 🔽
-            const result = await optimizeDayRoute(placesWithLoc);
-
-            if (result.success && result.route?.geometry?.coordinates) {
-                const path = result.route.geometry.coordinates.map((coords: [number, number]) => ({
-                    lng: coords[0],
-                    lat: coords[1]
-                }));
-
-                const routePolyline = new google.maps.Polyline({
-                    path: path,
-                    geodesic: true,
-                    strokeColor: day.color || '#FF0000',
-                    strokeOpacity: 0.8,
-                    strokeWeight: 5
-                });
-                routePolyline.setMap(map);
-                dailyRoutePolylines.push(routePolyline);
-            }
-        }
-    }
-
     if (markers.length > 0) {
         map.fitBounds(bounds);
         google.maps.event.addListenerOnce(map, 'idle', () => {
-            if (map.getZoom()! > 17) {
+            const zoom = map.getZoom();
+            if (zoom && zoom > 17) {
                 map.setZoom(17);
             }
         });
@@ -222,7 +213,6 @@ export function attachAutocompleteWhenReady(inputEl: HTMLInputElement, onPlaceSe
     });
 }
 
-// 🔽 3. แก้ไข: ฟังก์ชันนี้จะเรียกใช้ Backend API ใหม่ 🔽
 export async function getDirectionsBetweenTwoPoints(
     origin: { lat: number, lng: number }, 
     destination: { lat: number, lng: number }
@@ -235,7 +225,6 @@ export async function getDirectionsBetweenTwoPoints(
     const result = await getDirections(originGeoJSON, destGeoJSON, []);
 
     if (result.success && result.route) {
-        // สร้าง object ที่มีโครงสร้างคล้ายกับของ Google Maps เดิม เพื่อให้ DaySection.ts ทำงานได้
         return {
             legs: [{
                 distance: { text: `${(result.route.distance / 1000).toFixed(1)} km`, value: result.route.distance },

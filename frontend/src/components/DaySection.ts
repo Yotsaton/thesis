@@ -1,9 +1,8 @@
-//src/components/DaySection.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
-import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDisplayPlaceDetails } from './Map.js';
+import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDisplayPlaceDetails, drawRoutePolyline } from './Map.js';
 import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
@@ -51,11 +50,9 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
   const routes = await Promise.all(routePromises);
   
   routes.forEach((route, i) => {
-    // 🔽 เพิ่มการตรวจสอบให้รัดกุมขึ้นเพื่อแก้ Error 🔽
     if (route && route.legs && route.legs.length > 0) {
       const leg = route.legs[0];
-      // ตรวจสอบให้แน่ใจว่า duration และ distance มีอยู่จริง
-      if (leg.duration && leg.distance) { 
+      if (leg.duration && leg.distance) {
           totalTravelSeconds += leg.duration.value;
           const fromItemIndex = day.items.indexOf(placesWithLoc[i]);
           const travelInfoEl = document.getElementById(`travel-info-${dayIndex}-${fromItemIndex}`);
@@ -188,7 +185,6 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
   const optimizeButton = daySection.querySelector<HTMLButtonElement>('.optimize-btn');
   if (optimizeButton) {
     optimizeButton.addEventListener('click', async () => {
-      // กรองเอาเฉพาะสถานที่ที่มีพิกัดออกมา
       const placesToOptimize = day.items.filter((item): item is PlaceItem => 
         item.type === 'place' && !!item.location
       );
@@ -202,12 +198,9 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
         optimizeButton.disabled = true;
         optimizeButton.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Optimizing...`;
 
-        // เรียกใช้ API
         const result = await optimizeDayRoute(placesToOptimize);
         
-        if (result.success && result.ordered) {
-          // 3. อัปเดต State ด้วยลำดับสถานที่ใหม่
-          // (หมายเหตุ: ตรรกะนี้เป็นการแทนที่ items เดิมด้วยลำดับใหม่ อาจต้องปรับแก้ตามความเหมาะสม)
+        if (result.success && result.ordered && result.route?.geometry) {
           const newItems = day.items.map(item => {
             if (item.type === 'place') {
               return result.ordered!.find(p => p.id === item.id) || item;
@@ -215,18 +208,20 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
             return item;
           });
 
-          // จัดเรียง newItems ตามลำดับของ result.ordered
           newItems.sort((a, b) => {
               if (a.type === 'place' && b.type === 'place') {
-                  return result.ordered!.findIndex(p => p.id === a.id) - result.ordered!.findIndex(p => p.id === b.id);
+                  const aIndex = result.ordered!.findIndex(p => p.id === a.id);
+                  const bIndex = result.ordered!.findIndex(p => p.id === b.id);
+                  return aIndex - bIndex;
               }
               return 0;
           });
           
           appState.currentTrip.days[dayIndex].items = newItems;
           
-          // สั่งให้วาดหน้าจอใหม่ทั้งหมดเพื่อแสดงผลลำดับใหม่
           handleAppRender();
+          drawRoutePolyline(day, result.route.geometry);
+          
         } else {
           alert(`Failed to optimize route: ${result.message || 'Unknown error'}`);
         }
