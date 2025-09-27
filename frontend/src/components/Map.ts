@@ -2,15 +2,13 @@
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
-import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
 import { getDirections } from '../services/routeService.js';
-
+import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
 
 // --- Type Definitions for Google Maps Objects ---
 type GoogleMap = google.maps.Map;
 type GoogleMarker = google.maps.Marker;
 type LatLngBounds = google.maps.LatLngBounds;
-
 
 // --- Module State Variables ---
 let map: GoogleMap;
@@ -24,7 +22,6 @@ let mapReadyPromiseResolver: (value: boolean) => void;
 const mapReadyPromise = new Promise<boolean>(resolve => {
   mapReadyPromiseResolver = resolve;
 });
-
 
 // --- Functions ---
 export function clearTemporaryMarker(): void {
@@ -121,8 +118,7 @@ export function initMap(): Promise<boolean> {
 
 export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
     if (!map) return;
-
-    // ล้างเส้นทางเก่าของทุกวันก่อนวาดใหม่
+    
     dailyRoutePolylines.forEach(p => p.setMap(null));
     dailyRoutePolylines = [];
 
@@ -142,7 +138,7 @@ export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [numbe
     dailyRoutePolylines.push(routePolyline);
 }
 
-export function renderMapMarkersAndRoute(): void {
+export async function renderMapMarkersAndRoute(): Promise<void> {
     if (!mapsApiReady || !map) return;
 
     const days: Day[] = appState.currentTrip.days;
@@ -160,10 +156,7 @@ export function renderMapMarkersAndRoute(): void {
     
     days.forEach((day: Day, dayIndex: number) => {
         const placesOnly = (day.items || []).filter((item): item is PlaceItem => 
-            item.type === 'place' && 
-            !!item.location && 
-            Array.isArray(item.location.coordinates) && 
-            item.location.coordinates.length === 2
+            item.type === 'place' && !!item.location?.coordinates
         );
         
         const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
@@ -183,6 +176,25 @@ export function renderMapMarkersAndRoute(): void {
             });
         }
     });
+
+    // 🔽 1. นำตรรกะการวาดเส้นทางพื้นฐานกลับเข้ามา 🔽
+    const daysToRoute = focusedDayIndex !== null && days[focusedDayIndex] ? [days[focusedDayIndex]] : days;
+    
+    for (const day of daysToRoute) {
+        const placesWithLoc = (day.items || []).filter((i): i is PlaceItem => i.type === 'place' && !!i.location?.coordinates);
+        if (placesWithLoc.length >= 2) {
+            // วาดเส้นทางระหว่างแต่ละจุด (A->B, B->C, ...)
+            for (let i = 0; i < placesWithLoc.length - 1; i++) {
+                const origin = placesWithLoc[i].location!;
+                const destination = placesWithLoc[i+1].location!;
+                
+                const result = await getDirections(origin, destination, []);
+                if (result.success && result.route?.geometry?.coordinates) {
+                    drawRoutePolyline(day, result.route.geometry);
+                }
+            }
+        }
+    }
 
     if (markers.length > 0) {
         map.fitBounds(bounds);
