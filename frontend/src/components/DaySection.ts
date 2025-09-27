@@ -1,6 +1,7 @@
 //src/components/DaySection.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
+import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDisplayPlaceDetails } from './Map.js';
 import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
@@ -180,6 +181,62 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
         const tripService = await getTripService();
         await tripService.saveCurrentTrip();
         handleAppRender();
+      }
+    });
+  }
+
+  const optimizeButton = daySection.querySelector<HTMLButtonElement>('.optimize-btn');
+  if (optimizeButton) {
+    optimizeButton.addEventListener('click', async () => {
+      // กรองเอาเฉพาะสถานที่ที่มีพิกัดออกมา
+      const placesToOptimize = day.items.filter((item): item is PlaceItem => 
+        item.type === 'place' && !!item.location
+      );
+
+      if (placesToOptimize.length < 3) {
+        alert("ต้องมีอย่างน้อย 3 สถานที่ (รวมจุดเริ่มต้นและสิ้นสุด) ถึงจะจัดลำดับได้");
+        return;
+      }
+
+      try {
+        optimizeButton.disabled = true;
+        optimizeButton.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Optimizing...`;
+
+        // เรียกใช้ API
+        const result = await optimizeDayRoute(placesToOptimize);
+        
+        if (result.success && result.ordered) {
+          // 3. อัปเดต State ด้วยลำดับสถานที่ใหม่
+          // (หมายเหตุ: ตรรกะนี้เป็นการแทนที่ items เดิมด้วยลำดับใหม่ อาจต้องปรับแก้ตามความเหมาะสม)
+          const newItems = day.items.map(item => {
+            if (item.type === 'place') {
+              return result.ordered!.find(p => p.id === item.id) || item;
+            }
+            return item;
+          });
+
+          // จัดเรียง newItems ตามลำดับของ result.ordered
+          newItems.sort((a, b) => {
+              if (a.type === 'place' && b.type === 'place') {
+                  return result.ordered!.findIndex(p => p.id === a.id) - result.ordered!.findIndex(p => p.id === b.id);
+              }
+              return 0;
+          });
+          
+          appState.currentTrip.days[dayIndex].items = newItems;
+          
+          // สั่งให้วาดหน้าจอใหม่ทั้งหมดเพื่อแสดงผลลำดับใหม่
+          handleAppRender();
+        } else {
+          alert(`Failed to optimize route: ${result.message || 'Unknown error'}`);
+        }
+
+      } catch (error) {
+        console.error("Error optimizing route:", error);
+        alert("An unexpected error occurred while optimizing the route.");
+      } finally {
+        optimizeButton.disabled = false;
+        optimizeButton.innerHTML = `<i class='bx bx-git-branch'></i> Optimize route`;
       }
     });
   }
