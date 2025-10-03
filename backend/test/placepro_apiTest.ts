@@ -4,7 +4,7 @@ import request from 'supertest';
 import express from 'express';
 import placeRoutes from '../src/api/place.api'; // import router ของเรา
 import { processPlaces } from '../src/place/place_service'; // import มาเพื่อ mock
-import { Place, ResolveInput } from '../src/place/types/place.type';
+import { Place, ResolveInput } from '../src/place/types/types';
 
 // --- Mocking Setup ---
 // บอก Jest ให้แทนที่โมดูล 'placeService' ทั้งหมดด้วย mock version

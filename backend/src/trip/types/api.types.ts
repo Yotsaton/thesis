@@ -2,17 +2,44 @@
 import z from "zod"
 
 /**
- * POST /api/v1/auth/trips
- * สร้างทริปใหม่ของผู้ใช้ที่ล็อกอินอยู่
- * Body:
- *  - header?: string | null
- *  - start_plan: string|Date (YYYY-MM-DD หรือ Date)
- *  - end_plan:   string|Date (YYYY-MM-DD หรือ Date)
+ * สคีมาสำหรับ validate payload คร่าว ๆ
+ * - ใช้แบบหลวมเพื่อไม่ชนกับ type Trip ที่คุณมีอยู่ (ให้ service เป็นตัวจัดการรายละเอียด)
+ * - ถ้าคุณมี Zod schema ของ Trip อยู่แล้ว ให้ import มาแทนตัวนี้ได้เลย
  */
-export const CreateTripBody = z.object({
-  header: z.string().trim().min(1).nullable().optional().or(z.literal("").transform(() => null)),
-  start_plan: z.union([z.string().min(4), z.date()]),
-  end_plan: z.union([z.string().min(4), z.date()]),
+export const TripPayloadSchema = z.object({
+  name: z.string().optional(),
+  start_plan: z.string().min(1, "start_plan is required"),
+  end_plan: z.string().min(1, "end_plan is required"),
+  days: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        date: z.string().min(1),
+        subheading: z.string().optional(),
+        updatedAt: z.any().optional(),
+        items: z
+          .array(z
+            .object({
+              type: z.literal("place"),
+              id: z.string().optional(), // place.id (DB) ถ้ามี
+              place_id: z.string().optional(),
+              startTime: z.string().optional(),
+              endTime: z.string().optional(),
+              location: z.any().optional(),
+              name: z.string().optional(),
+            })
+            .or(
+              z.object({
+                type: z.literal("note"),
+                id: z.string().optional(), // route.id ถ้าส่งมา
+                text: z.string().optional(),
+              })
+            )
+          )
+          .default([]),
+      })
+    )
+    .default([]),
 });
 
 // ชนิดคอลัมน์ที่อนุญาตให้ sort (ให้ตรงกับ union type ใน ListTripsOptions)
@@ -24,10 +51,12 @@ const DateStr = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
 
+const StatusEnum = z.enum(["active", "deleted"]);
+
 export const ListQuerySchema = z
   .object({
     q: z.string().trim().min(1).optional(),
-    status: z.string().trim().min(1).optional(),
+    status: StatusEnum.optional().default("active"),
     from: DateStr.optional(),
     to: DateStr.optional(),
     page: z.coerce.number().int().min(1).default(1),

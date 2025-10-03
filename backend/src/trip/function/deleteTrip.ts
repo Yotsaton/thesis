@@ -1,7 +1,7 @@
 // src/trip/function/deleteTrip.ts
 import { db } from "../../database/db-promise";
 import type { trip } from "../../database/database.types";
-import { UpdateOptions  } from "../types/type";
+import { UpdateOptions  } from "../types/types";
 import { Accessor } from "../../middleware/type.api";
 
 /**

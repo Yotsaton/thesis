@@ -1,7 +1,7 @@
 // src/trip/function/updateTrip.ts
 import { db } from "../../database/db-promise";
 import type { trip } from "../../database/database.types";
-import { TripPatch, UpdateOptions } from "../types/type";
+import { TripPatch, UpdateOptions } from "../types/types";
 import { Accessor } from "../../middleware/type.api";
 import { toDateOnly } from "./toDateOnly";
 

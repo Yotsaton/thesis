@@ -1,37 +1,48 @@
 // src/place/functions/savePlaceToDB.ts
+import type { ITask, IDatabase } from "pg-promise";
+import { db } from "../../database/db-promise";
+import type { place } from "../../database/database.types";
+import type { PlaceInsert } from "../types/types";
 
-import {db} from '../../database/db-promise';
-import {Place} from '../types/place.type';
+const runner = (t?: ITask<any> | IDatabase<any>) => (t as any) ?? db;
 
 /**
- * บันทึกข้อมูลสถานที่ (Place) ลงในฐานข้อมูล PostgreSQL
- *
- * @param place - อ็อบเจกต์ข้อมูลสถานที่ที่ต้องการบันทึก
- * @throws Will throw an error if the database operation fails.
+ * Insert ใหม่ (ให้ DB gen id)
+ * - ถ้าใส่ place_ID_by_ggm มาด้วย ควรใช้ upsert ในระดับ service (processPlaces) แทน
+ * - ฟังก์ชันนี้ “ไม่ upsert”
  */
-export async function savePlaceToDB(place: Place): Promise<void> {
-  const insertQuery = `
-    INSERT INTO public.place(
-      "place_ID", name_place, address, location, rating,
-      user_rating_total, sumary_place, "place_ID_by_ggm",
-      category, url, last_update_data
-    ) VALUES (
-      $/place_id/, $/name_place/, $/formatted_address/,
-      ST_SetSRID(ST_MakePoint($/longitude/, $/latitude/), 4326),
+export async function savePlaceToDB(
+  t: ITask<any> | IDatabase<any> | undefined = undefined,
+  p: PlaceInsert
+): Promise<place> {
+  const r = runner(t);
+  const hasLoc = !!p.location && Array.isArray(p.location.coordinates);
+  const sql = `
+    INSERT INTO public.place (
+      name_place, address, location,
+      rating, user_rating_total, sumary_place,
+      place_id_by_ggm, category, url
+    )
+    VALUES (
+      $/name_place/, $/address/,
+      ${hasLoc ? `ST_SetSRID(ST_MakePoint($/lon/, $/lat/), 4326)` : `NULL`},
       $/rating/, $/user_rating_total/, $/sumary_place/,
-      $/place_id_by_ggm/, $/category/, $/url/, $/last_update_data/
-    );
+      $/place_id_by_ggm/, $/category/, $/url/
+    )
+    RETURNING *;
   `;
 
+  const params = {
+    ...p,
+    lon: hasLoc ? p.location!.coordinates[0] : undefined,
+    lat: hasLoc ? p.location!.coordinates[1] : undefined,
+  };
+
   try {
-    await db.none(insertQuery, {
-      ...place,
-      longitude: place.location.coordinates[0],
-      latitude: place.location.coordinates[1],
-    });
-    console.log(`✔️ บันทึกสถานที่ "${place.name_place}" ลงฐานข้อมูลสำเร็จ`);
-  } catch (error) {
-    console.error(`❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลสถานที่ (ID: ${place.place_id}):`, error);
-    throw new Error('Failed to save place to the database.');
+    const row = (await r.one(sql, params)) as place;
+    return row;
+  } catch (err) {
+    console.error("savePlaceToDB error:", err);
+    throw new Error("Failed to save place");
   }
 }

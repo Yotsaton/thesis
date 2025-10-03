@@ -1,70 +1,65 @@
 // src/place/functions/fetchGooglePlaceDetails.ts
-
-import { v4 as uuidv4 } from 'uuid';
-import type {place , geoJSONPoint} from '../../database/database.types'
-
-interface GooglePlaceDetailsResponse {
-  result: {
-    name: string;
-    formatted_address: string;
-    geometry: { location: { lat: number; lng: number; }; };
-    place_id: string;
-    rating?: number;
-    user_ratings_total?: number;
-    editorial_summary?: { overview: string; };
-    url: string;
-    types?: string[];
-  };
-  status: string;
-  error_message?: string;
-}
+import { geoJSONPoint } from "../../database/database.types";
+import type { GooglePlaceDetailsResponse, PlaceInsert, ResolveInput } from "../types/types";
 
 /**
- * ดึงข้อมูลรายละเอียดสถานที่จาก Google Maps Place Details API
- *
- * @param googlePlaceId - Place ID ของสถานที่ที่ต้องการค้นหา
- * @param apiKey - Google Maps API Key
- * @returns A Promise that resolves to a `Place` object or `null`.
+ * แปลงผล Google → โครงข้อมูลสำหรับ DB (PlaceInsert บางส่วน)
+ * (geometry/พิกัดจะถูกแปลงที่ caller หากต้องการเก็บ)
+ */
+function toPlaceInsertFromDetails(
+  json: GooglePlaceDetailsResponse
+): Partial<PlaceInsert> {
+  const r = json.result;
+  if (!r) return { place_id_by_ggm: null };
+
+  const location: geoJSONPoint =  { type: "Point", 
+    coordinates: [Number(r.geometry?.location?.lng), Number(r.geometry?.location?.lat)] 
+  }; // [lng, lat]
+
+  return {
+    name_place: r.name ?? null,
+    address: r.formatted_address ?? null,
+    location: location,
+    rating: typeof r.rating === "number" ? r.rating : null,
+    user_rating_total: typeof r.user_ratings_total === "number" ? r.user_ratings_total : null,
+    sumary_place: r.editorial_summary?.overview ?? null,
+    place_id_by_ggm: r.place_id ?? null,
+    category: Array.isArray(r.types) ? r.types : null,
+    url: r.url ?? null,
+  };
+}
+// ต้องแก้ให้return locationใน meta ด้วย(promise<insertplace>)
+/**
+ * ✅ ดึงรายละเอียดจาก Google ด้วย "place_id" เท่านั้น
+ * - ถ้า input ไม่ใช่ place_id (เช่นมี location) → throw
  */
 export async function fetchGooglePlaceDetails(
-  googlePlaceId: string,
-  apiKey: string
-): Promise<place | null> {
-  const fields = ['name', 'formatted_address', 'geometry', 'place_id', 'rating',
-                  'user_ratings_total', 'editorial_summary', 'url', 'types'].join(',');
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${googlePlaceId}&fields=${fields}&key=${apiKey}&language=th`;
+  apiKey: string,
+  input: string
+): Promise<PlaceInsert> {
+  if (!apiKey) throw new Error("missing_google_places_api_key");
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`HTTP error! status: ${response.status}`);
-      return null;
-    }
-    const data: GooglePlaceDetailsResponse = await response.json();
-    if (data.status !== 'OK') {
-      console.warn(`Google API Error: ${data.status} for Place ID ${googlePlaceId}.`);
-      return null;
-    }
+  const placeId = input;
+  const fields =
+    "name,formatted_address,geometry,place_id,rating,user_ratings_total,editorial_summary,url,types";
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
+    placeId
+  )}&fields=${encodeURIComponent(fields)}&key=${encodeURIComponent(apiKey)}`;
 
-    const { result } = data;
-    return {
-      id: uuidv4(),
-      name_place: result.name,
-      address: result.formatted_address,
-      location: {
-        type: 'Point',
-        coordinates: [result.geometry.location.lng, result.geometry.location.lat],
-      },
-      updated_at: new Date(),
-      place_ID_by_ggm: result.place_id,
-      rating: result.rating ?? null,
-      user_rating_total: result.user_ratings_total ?? null,
-      sumary_place: result.editorial_summary?.overview ?? null,
-      url: result.url ?? null,
-      category: result.types ?? null,
-    };
-  } catch (error) {
-    console.error('Fetch operation failed:', error);
-    return null;
+  const resp = await fetch(url);
+  if(!resp.ok) {
+    console.error("fetchGooglePlaceDetails error response:", resp);
+    throw new Error(`google_places_api_error_${resp.status}`);
   }
+
+  const data = (await resp.json()) as GooglePlaceDetailsResponse;
+  const result = toPlaceInsertFromDetails(data);
+  if(result.place_id_by_ggm !== placeId) {
+    console.warn(
+      `fetchGooglePlaceDetails: place_id ไม่ตรง! (input: ${placeId}, result: ${result.place_id_by_ggm})`
+    );
+  }
+  if(!result.location?.coordinates) throw new Error("failed_to_fetch_place_details");
+
+  return result as PlaceInsert;
 }

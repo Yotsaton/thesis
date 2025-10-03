@@ -1,9 +1,9 @@
 // src/trip/function/updateTrip.api.ts
 import { type RequestHandler } from "express";
 import {type AuthenticatedRequest} from "../../middleware/type.api";
-import { ParamSchema, UpdateBodySchema } from "../types/api.type";
+import { ParamSchema, UpdateBodySchema } from "../types/api.types";
 import { updateMyTrip } from "../function/updateTrip"; // ← ใช้ฟังก์ชันที่คุณมีอยู่
-import { UpdateOptions } from "../types/type";
+import { UpdateOptions } from "../types/types";
 
 // -------- Handler --------
 

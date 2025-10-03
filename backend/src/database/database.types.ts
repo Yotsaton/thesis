@@ -7,6 +7,7 @@ export interface geoJSONPoint {
 }
 
 export type DateYMD = string; // 'YYYY-MM-DD'
+export type Time = string; // 'HH:mm:ss+ZZ'
 
 // interface database
 export interface users {
@@ -36,10 +37,11 @@ export interface trip{
   username : string ; // FK from users table
   start_plan : DateYMD ;
   end_plan : DateYMD ;
-  status : string ; 
+  status : "active" | "delete"; 
   created_at : Date ;
   header : string | null;
   updated_at : Date ;
+  deleted_at : Date | null ;
 }
 
 export interface day_trip{
@@ -59,7 +61,7 @@ export interface place{
   rating : number | null;
   user_rating_total : number | null;
   sumary_place : string | null;
-  place_ID_by_ggm : string | null;
+  place_id_by_ggm : string | null;
   category : string[] | null;
   url : string | null;
   updated_at : Date;
@@ -67,13 +69,21 @@ export interface place{
 
 export interface route{
   id : string;                // PK
-  day_trip_id : string;       // FK from dat_trip table
+  d_trip_id : string;       // FK from day_trip table
   place_id : string | null;   // FK from place table
   created_at : Date;
   note : string | null;
   index : number ;
   updated_at : Date;
-  start_time : Date | null;
-  end_time : Date | null;
+  start_time : Time | null; // "HH:MM:SS+ZZ"format
+  end_time : Time | null;   // "HH:MM:SS+ZZ"format
   type : 'place' | 'note';
+}
+
+export interface activity_log{
+  id : string;            // PK
+  username : string;      // FK from users table
+  ip_addr : string;
+  activity : string | null;
+  created_at : Date;
 }

@@ -1,9 +1,9 @@
 // src/trip/function/deleteTrip.api.ts
 import { type RequestHandler } from "express";
 import {type AuthenticatedRequest} from "../../middleware/type.api";
-import { ParamSchema, DeleteBodySchema } from "../types/api.type";
+import { ParamSchema, DeleteBodySchema } from "../types/api.types";
 import { deleteMyTrip } from "../function/deleteTrip"; // ← ฟังก์ชันใน deleteTrip.ts
-import type { UpdateOptions } from "../types/type";
+import type { UpdateOptions } from "../types/types";
 
 /**
  * DELETE /api/v1/auth/trip/delete/:trip_id

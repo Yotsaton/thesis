@@ -64,4 +64,9 @@ export async function initGeographyTypeParser() {
     return g;
   });
 }
+// เรียก parser setup ตอน init
+initGeographyTypeParser().catch(err => {
+  console.error("[db] Failed to init geography parser", err);
+});
+
 export { db, pgp };
