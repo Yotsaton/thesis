@@ -3,6 +3,7 @@ import { Response } from "express";
 import type { AuthenticatedRequest, Accessor } from "../../middleware/type.api";
 import { createTrip } from "./createTrip";
 import { TripPayloadSchema } from "../types/api.types";
+import { Trip } from "../types/types"; // import Trip type
 
 /**
  * @route POST /api/v1/auth/trip/full
@@ -50,10 +51,18 @@ export const createTripApi = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // 2) validate body (แบบหลวม ๆ)
-    const payload = TripPayloadSchema.parse(req.body);
+    const parse = TripPayloadSchema.safeParse(req.body);
+
+    if (!parse.success) {
+      return res.status(400).json({
+        success: false,
+        error: "validation_error",
+        details: parse.error.issues,
+      });
+    }
 
     // 3) เรียก service เพื่อสร้างทริป (DB จะ gen id/created_at เอง)
-    const data = await createTrip(accessor, payload as any);
+    const data = await createTrip(accessor, parse.data as Trip);
 
     // 4) ส่งคืนผลลัพธ์ Trip ที่มี id ครบทุกระดับ
     return res.status(201).json({ success: true, data });

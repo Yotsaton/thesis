@@ -1,46 +1,54 @@
 // src/trip/types/api.type.ts
 import z from "zod"
 
-/**
- * สคีมาสำหรับ validate payload คร่าว ๆ
- * - ใช้แบบหลวมเพื่อไม่ชนกับ type Trip ที่คุณมีอยู่ (ให้ service เป็นตัวจัดการรายละเอียด)
- * - ถ้าคุณมี Zod schema ของ Trip อยู่แล้ว ให้ import มาแทนตัวนี้ได้เลย
- */
+/** ---------- Params Schema ---------- */
+export const ParamSchema = z.object({
+  trip_id: z.string().min(1, "trip_id is required"),
+});
+
+/** ---------- Item Schemas ---------- */
+const PlaceItemSchema = z.object({
+  type: z.literal("place"),
+  id: z.string().nullable().optional(),          // route.id (DB) ถ้ามีตอน update
+  place_id: z.string().optional(),    // Google place_id (ใช้ resolve -> place.id DB)
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  location: z.any().optional(),       // geoJSONPoint (ปล่อยหลวมฝั่ง API)
+  name: z.string().optional(),
+}).strip();
+
+const NoteItemSchema = z.object({
+  type: z.literal("note"),
+  id: z.string().nullable().optional(),          // route.id (DB) ถ้ามีตอน update
+  text: z.string().optional(),
+}).strip();
+
+const ItemSchema = z.union([PlaceItemSchema, NoteItemSchema]);
+
+/** ---------- Day Schema: รับ color ได้ แต่ตัดทิ้ง ---------- */
+const DayInputSchema = z.object({
+  id: z.string().nullable().optional(),
+  date: z.string().min(1),
+  subheading: z.string().optional(),
+  updatedAt: z.any().optional(),
+  color: z.string().optional(),       // << รับมาได้จาก FE
+  items: z.array(ItemSchema),
+}).strip();
+
+// หลัง transform: object ที่ได้จะ "ไม่มี color"
+const DaySchema = DayInputSchema.transform(({ color, ...rest }) => rest);
+
+/** ---------- Trip (Create/PUT Deep) ---------- */
 export const TripPayloadSchema = z.object({
   name: z.string().optional(),
   start_plan: z.string().min(1, "start_plan is required"),
   end_plan: z.string().min(1, "end_plan is required"),
-  days: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        date: z.string().min(1),
-        subheading: z.string().optional(),
-        updatedAt: z.any().optional(),
-        items: z
-          .array(z
-            .object({
-              type: z.literal("place"),
-              id: z.string().optional(), // place.id (DB) ถ้ามี
-              place_id: z.string().optional(),
-              startTime: z.string().optional(),
-              endTime: z.string().optional(),
-              location: z.any().optional(),
-              name: z.string().optional(),
-            })
-            .or(
-              z.object({
-                type: z.literal("note"),
-                id: z.string().optional(), // route.id ถ้าส่งมา
-                text: z.string().optional(),
-              })
-            )
-          )
-          .default([]),
-      })
-    )
-    .default([]),
-});
+  days: z.array(DaySchema),
+}).strip();
+
+export type TripPayload = z.infer<typeof TripPayloadSchema>;
+
+/** ---------- List Query Schema ---------- */
 
 // ชนิดคอลัมน์ที่อนุญาตให้ sort (ให้ตรงกับ union type ใน ListTripsOptions)
 const SortEnum = z.enum(["start_plan", "created_at", "updated_at"]);
@@ -100,47 +108,7 @@ export const ListQuerySchema = z
 
 export type ListQueryParsed = z.infer<typeof ListQuerySchema>;
 
-/** ต้องการ timestamp ที่เป็น ISO 8601 (RFC3339) เช่น 2025-09-25T12:34:56.789Z หรือมี offset */
-const ISODateTime = z
-  .string()
-  .refine(
-    (s) => !Number.isNaN(Date.parse(s)),
-    "updated_at must be a valid ISO 8601 timestamp"
-  );
-
-export const ParamSchema = z.object({
-  trip_id: z.string().min(1, "trip_id is required"),
-});
-
-export const UpdateBodySchema = z
-  .object({
-    // ----- UpdateOptions (REQUIRED) -----
-    updated_at: ISODateTime, // ใช้เพื่อ optimistic concurrency และแมปเป็น ifMatchUpdatedAt ตอนเรียก service
-
-    // ----- Fields to update (partial) -----
-    header: z
-      .union([z.string().trim().min(1), z.literal(""), z.null()])
-      .optional()
-      .transform((v) => (v === "" ? null : v ?? undefined)),
-    status: z.string().trim().min(1).optional(),
-    start_plan: DateStr.optional(),
-    end_plan: DateStr.optional(),
-  })
-  .refine(
-    (data) =>
-      data.header !== undefined ||
-      data.status !== undefined ||
-      data.start_plan !== undefined ||
-      data.end_plan !== undefined,
-    { message: "At least one field (header, status, start_plan, end_plan) is required" }
-  )
-  .refine(
-    (data) =>
-      !(data.start_plan && data.end_plan) || data.end_plan >= data.start_plan,
-    { message: "end_plan must be >= start_plan when both are provided" }
-  );
-
-// รับ updated_at (ISO 8601) ไว้ใช้เป็น if-match (ถ้าคุณรองรับ concurrency ตอนลบ)
+// ---------- DELETE Body Schema (สำหรับ optimistic concurrency) ----------
 export const DeleteBodySchema = z.object({
   updated_at: z
     .string()

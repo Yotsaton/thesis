@@ -49,7 +49,7 @@ function createPlanCard(trip: Trip): HTMLDivElement {
     deleteButton.addEventListener('click', async () => {
       if (confirm(`Delete "${trip.name}" ?`)) {
         const tripService = await getTripService();
-        await tripService.deleteTrip(trip.id!);
+        await tripService.deleteTrip(trip.id!, trip.updatedAt as string);
         renderPlans();
       }
     });

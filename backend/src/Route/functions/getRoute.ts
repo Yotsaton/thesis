@@ -54,6 +54,7 @@ export async function getRoute(
     body: JSON.stringify({
       coordinates: coords,
       instructions: true,
+      radiuses: 1000 // อนุญาตให้เบี่ยงได้ 1 กม. (ค่า default คือ 350 เมตร)
     }),
   });
 

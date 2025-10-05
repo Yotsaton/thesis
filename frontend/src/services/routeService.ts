@@ -1,7 +1,7 @@
 import type { PlaceItem, GeoJSONPoint } from "../types";
 
 // ใช้ VITE_API_URL จากไฟล์ .env เพื่อความยืดหยุ่น
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL;
 
 async function apiRequest(endpoint: string, body: object, method: 'POST' | 'GET' = 'POST'): Promise<any> {
   try {

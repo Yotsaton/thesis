@@ -37,7 +37,7 @@ export interface trip{
   username : string ; // FK from users table
   start_plan : DateYMD ;
   end_plan : DateYMD ;
-  status : "active" | "delete"; 
+  status : "active" | "deleted"; 
   created_at : Date ;
   header : string | null;
   updated_at : Date ;
