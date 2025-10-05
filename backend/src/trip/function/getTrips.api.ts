@@ -1,7 +1,7 @@
 // src/trip/function/getTrip.api.ts
 import {type Response } from "express";
 import {type AuthenticatedRequest, Accessor} from "../../middleware/type.api";
-import { ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.type";
+import { ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.types";
 import { getTrips, getTrip} from "./getTrips";
 
 /**
@@ -26,7 +26,7 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
 
     const {
       q,
-      status,
+      status,          // enum 'active' | 'deleted' (default 'active')
       from,
       to,
       orderBy,
@@ -40,20 +40,19 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
 
     const isAdmin = !!(auth.is_super_user || auth.is_staff_user);
 
-    // ถ้าไม่ใช่ admin → จำกัดที่ตัวเองเท่านั้น
-    // ถ้าเป็น admin และมี parsedUsernames → ใช้ที่ส่งมา, ถ้าไม่มี → อนุญาตให้ดูทั้งหมด (ปล่อย undefined)
+    // ถ้าไม่ใช่ admin → จำกัดที่ตัวเอง
     const usernames = isAdmin
       ? (parsedUsernames && parsedUsernames.length ? parsedUsernames : undefined)
       : [auth.username];
 
     const { items, total } = await getTrips(auth, {
-      usernames,                 // ← ตรงกับ ListTripsOptions
+      usernames,
       status,
       from,
       to,
       q,
-      orderBy,                   // "start_plan" | "created_at" | "updated_at"
-      order: direction,                 // "asc" | "desc"
+      orderBy,
+      order: direction,
       limit,
       offset,
     });
@@ -63,12 +62,14 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
       name: trip.header,
       start_plan: trip.start_plan,
       end_plan: trip.end_plan,
+      status: trip.status,
       updatedAt: trip.updated_at,
+      deletedAt: trip.deleted_at,
     }));
 
     return res.status(200).json({
       success: true,
-      trips: trips,
+      trips,
       pagination: {
         page,
         page_size,
@@ -78,60 +79,14 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
       sort: { order_by: orderBy, direction },
       filters: { q, status, from, to, usernames: isAdmin ? usernames : [auth.username] },
     });
-    
   } catch (err: any) {
     if (err?.name === "ZodError") {
-      return res.status(400).json({ 
-        error: "validation_error", details: err.issues,
-        success: false,
-      });
-    }
-    const msg = typeof err?.message === "string" ? err.message : "unexpected_error";
-    return res.status(500).json({ 
-      success: false,
-      error: msg });
-  }
-};
-/**
- * GET /api/v1/auth/trip/:trip_id
- * ดึงข้อมูลทริปเดียวตาม trip_id (ยึด username จาก req.auth)
- */
-
-export const getTripApi = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { trip_id } = ParamSchema.parse(req.params);
-    const auth: Accessor = req.auth;
-
-    if (!trip_id) {
       return res.status(400).json({
+        error: "validation_error",
+        details: err.issues,
         success: false,
-        error: "missing_trip_id",
       });
     }
-
-    const trip = await getTrip(auth, trip_id);
-
-    if (!trip) {
-      return res.status(404).json({
-        success: false,
-        error: "trip_not_found",
-      });
-    }
-
-    // ตรวจสอบสิทธิ์: admin ดูได้ทุก trip, user ดูได้เฉพาะของตัวเอง
-    const isAdmin = !!(auth.is_super_user || auth.is_staff_user);
-    if (!isAdmin && trip.username !== auth.username) {
-      return res.status(403).json({
-        success: false,
-        error: "forbidden",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: trip,
-    });
-  } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "unexpected_error";
     return res.status(500).json({
       success: false,

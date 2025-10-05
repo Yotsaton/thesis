@@ -1,7 +1,7 @@
 // src/trip/function/getTrips.ts
 import { db } from "../../database/db-promise";
 import type { trip } from "../../database/database.types";
-import { ListTripsOptions } from "../types/type";
+import { ListTripsOptions } from "../types/types";
 import { Accessor } from "../../middleware/type.api";
 
 function toDateOnly(input?: string | Date): string | undefined {
@@ -15,6 +15,10 @@ function toDateOnly(input?: string | Date): string | undefined {
   return input; // assume YYYY-MM-DD
 }
 
+/**
+ * ดึงรายการทริปแบบมีสิทธิ์ (user เห็นของตัวเอง, admin เห็นได้ทั้งระบบ)
+ * - ดีฟอลต์จะกรอง status='active' (กันแสดงทริปที่ลบแล้ว)
+ */
 export async function listTripsAuthorized(
   accessor: Accessor,
   opts: ListTripsOptions = {}
@@ -36,7 +40,6 @@ export async function listTripsAuthorized(
 
   // สิทธิ์เข้าถึง
   if (isAdmin) {
-    // แอดมิน: จะไม่บังคับ username ถ้าไม่ส่งมาก็ดึงทั้งหมดได้
     if (typeof opts.usernames === "string" && opts.usernames.trim() !== "") {
       params.usernames = [opts.usernames.trim()];
       conditions.push(`t.username = ANY($[usernames])`);
@@ -45,7 +48,6 @@ export async function listTripsAuthorized(
       conditions.push(`t.username = ANY($[usernames])`);
     }
   } else {
-    // ผู้ใช้ทั่วไป: บังคับเฉพาะของตัวเอง
     params.req_username = accessor.username;
     conditions.push(`t.username = $[req_username]`);
   }
@@ -54,16 +56,20 @@ export async function listTripsAuthorized(
   if (from) conditions.push(`t.start_plan >= $[from]`);
   if (to) conditions.push(`t.end_plan <= $[to]`);
 
-  // ฟิลเตอร์สถานะ
+  // ฟิลเตอร์สถานะ — ดีฟอลต์เป็น 'active' แล้วตั้งแต่ชั้น API
   if (typeof opts.status === "string" && opts.status.trim() !== "") {
     params.status = opts.status.trim();
     conditions.push(`t.status = $[status]`);
   } else if (Array.isArray(opts.status) && opts.status.length > 0) {
     params.status_array = opts.status;
     conditions.push(`t.status = ANY($[status_array])`);
+  } else {
+    // กันพลาดหากเรียก service ตรง ๆ โดยไม่ผ่าน API layer
+    params.status_default = 'active';
+    conditions.push(`t.status = $[status_default]`);
   }
 
-  // ค้นหา header แบบ full-text เบา ๆ ด้วย ILIKE
+  // ค้นหา header แบบ ILIKE
   if (opts.q && opts.q.trim() !== "") {
     params.q = `%${opts.q.trim()}%`;
     conditions.push(`t.header ILIKE $[q]`);
@@ -80,7 +86,8 @@ export async function listTripsAuthorized(
       t.status,
       t.created_at,
       t.header,
-      t.updated_at
+      t.updated_at,
+      t.deleted_at       -- <<— เพิ่มฟิลด์นี้ให้ตรง type
     FROM public.trip t
     ${whereClause}
   `;
@@ -105,11 +112,12 @@ export async function listTripsAuthorized(
   });
 }
 
-/** ช่วยเรียกแบบง่าย: ถ้าเป็นแอดมิน ไม่ส่ง opts.usernames = ดึงทั้งหมด; ถ้าเป็นยูสเซอร์ จะดึงเฉพาะของตัวเอง */
+/** สะดวกเรียก */
 export async function getTrips(accessor: Accessor, opts?: ListTripsOptions) {
   return listTripsAuthorized(accessor, opts);
 }
-/** ดึงข้อมูล trip เดียวตาม trip_id */
+
+/** ดึงข้อมูล trip เดียวตาม id (เคารพสิทธิ์) */
 export async function getTrip(accessor: Accessor, trip_id: string): Promise<trip> {
   const isAdmin = Boolean(accessor.is_super_user || accessor.is_staff_user);
 
@@ -123,7 +131,8 @@ export async function getTrip(accessor: Accessor, trip_id: string): Promise<trip
       t.status,
       t.created_at,
       t.header,
-      t.updated_at
+      t.updated_at,
+      t.deleted_at
     FROM public.trip t
     WHERE t.id = $[trip_id] AND ($[isAdmin] OR t.username = $[req_username])
     `,
@@ -132,7 +141,6 @@ export async function getTrip(accessor: Accessor, trip_id: string): Promise<trip
 
   if (!trip) throw new Error("Trip not found");
 
-  // ตรวจสอบสิทธิ์เข้าถึง
   if (!isAdmin && trip.username !== accessor.username) {
     throw new Error("Access denied");
   }

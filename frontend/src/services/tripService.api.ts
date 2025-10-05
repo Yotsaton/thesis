@@ -65,9 +65,9 @@ export async function loadTripList(): Promise<any> {
 }
 
 export async function loadTrip(tripId: string): Promise<any> {
-  const data = await apiRequest(`/trips/${tripId}`, { method: "GET" });
-  if (data.success && data.trip) {
-    const tripForState: Trip = { ...data.trip, id: data.trip._id ?? null };
+  const data = await apiRequest(`/auth/trip/${tripId}/full`, { method: "GET" });
+  if (data.success && data.data) {
+    const tripForState: Trip = { ...data.data, id: data.data.id ?? null };
     setCurrentTrip(tripForState);
   }
   return data;
@@ -87,24 +87,28 @@ export async function saveCurrentTrip(): Promise<any> {
   if (currentTripId) {
     // UPDATE
     updateSaveStatus("Saving...");
-    const data = await apiRequest(`/trips/${currentTripId}`, {
+    const data = await apiRequest(`/auth/trip/${currentTripId}/full`, {
       method: "PUT",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripToSend),
     });
-    if (data.success) updateSaveStatus("All changes saved ✅");
-    else updateSaveStatus("Unable to save ❌", true);
+    if (data.success && data.data) {
+      const newTripWithId: Trip = { ...data.data, id: data.data.id ?? null };
+      setCurrentTrip(newTripWithId);
+      appState.trips.push(newTripWithId);
+      updateSaveStatus("All changes saved ✅");
+    } else updateSaveStatus("Unable to save ❌", true);
     return data;
   } else {
     // CREATE
     updateSaveStatus("Saving new plan...");
-    const data = await apiRequest("/trips", {
+    const data = await apiRequest("/auth/trip/full", {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripToSend),
     });
-    if (data.success && data.trip) {
-      const newTripWithId: Trip = { ...data.trip, id: data.trip._id ?? null };
+    if (data.success && data.data) {
+      const newTripWithId: Trip = { ...data.data, id: data.data.id ?? null };
       setCurrentTrip(newTripWithId);
       appState.trips.push(newTripWithId);
       updateSaveStatus("Plan saved ✅");
@@ -115,8 +119,12 @@ export async function saveCurrentTrip(): Promise<any> {
   }
 }
 
-export async function deleteTrip(tripId: string): Promise<any> {
-  const data = await apiRequest(`/trips/${tripId}`, { method: "DELETE" });
+export async function deleteTrip(tripId: string, updated_at: string): Promise<any> {
+  const data = await apiRequest(`/auth/trip/${tripId}`, { 
+    method: "DELETE",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ updated_at: new Date(updated_at).toISOString() }),
+});
   if (data.success) {
     appState.trips = appState.trips.filter((t) => t.id !== tripId);
   }

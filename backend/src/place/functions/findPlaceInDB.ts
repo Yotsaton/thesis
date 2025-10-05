@@ -1,55 +1,57 @@
 // src/place/functions/findPlaceInDB.ts
+import type { ITask, IDatabase } from "pg-promise";
+import { db } from "../../database/db-promise";
+import type { place, geoJSONPoint } from "../../database/database.types";
+import type { ResolveInput } from "../types/types";
+const SEARCH_RADIUS_METERS = 100;
 
-import {db} from '../../database/db-promise';
-import type {place , geoJSONPoint} from '../../database/database.types'
-import {mapDbRowToPlace} from './mapPlaceData';
+/** ใช้ตัวรัน query: เลือก t ถ้ามี ไม่งั้น fallback db */
+const runner = (t?: ITask<any> | IDatabase<any>) => (t as any) ?? db;
 
 /**
- * ค้นหาสถานที่ในฐานข้อมูล (DB)
- * 1. ค้นหาด้วย Google Maps Place ID (`place_ID_by_ggm`) ก่อน
- * 2. หากไม่พบ ให้ค้นหาสถานที่ที่ใกล้ที่สุดจากพิกัดที่กำหนดภายในรัศมีที่กำหนด
- *
- * @param googlePlaceId - The Place ID จาก Google Maps
- * @param searchLocation - The geoJSONPoint location to use as a fallback search.
- * @returns A Promise that resolves to a `Place` object or `null` if not found.
+ * ค้นหา place ใน DB
+ * 1) ด้วย place_ID_by_ggm (เร็ว/ชัวร์)
+ * 2) หรือพิกัด (ใกล้สุดภายในรัศมี)
  */
 export async function findPlaceInDB(
-  googlePlaceId: string,
-  searchLocation: geoJSONPoint
+  t: ITask<any> | IDatabase<any> | undefined = undefined,
+  input: ResolveInput
 ): Promise<place | null> {
-  const BASE_QUERY = `
-    SELECT
-      "place_ID", name_place, address, ST_AsGeoJSON(location) as location, rating,
-      user_rating_total, sumary_place, "place_ID_by_ggm",
-      category, url, last_update_data
-    FROM public.place
-  `;
-
+  const r = runner(t);
   try {
-    const queryById = `${BASE_QUERY} WHERE "place_ID_by_ggm" = $/googlePlaceId/`;
-    const placeById = await db.oneOrNone<place>(queryById, { googlePlaceId });
-
-    if (placeById) {
-      return mapDbRowToPlace(placeById);
+    if (input.place_id_by_ggm) {
+      const row = (await r.oneOrNone(
+        `SELECT * FROM public.place WHERE place_id_by_ggm = $1 LIMIT 1`,
+        [input.place_id_by_ggm]
+      )) as place | null;
+      console.log("type of row.location:", typeof row?.location);
+      console.log("findPlaceInDB by place_id_by_ggm:", row);
+      if (row) return row;
     }
 
-    const SEARCH_RADIUS_METERS = 50;
-    const queryByLocation = `
-      ${BASE_QUERY}
-      WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($/longitude/, $/latitude/), 4326), $/radius/)
-      ORDER BY ST_Distance(location, ST_SetSRID(ST_MakePoint($/longitude/, $/latitude/), 4326)) ASC
-      LIMIT 1;
-    `;
-    const placeByLocation = await db.oneOrNone<PlaceDbRow>(queryByLocation, {
-      longitude: searchLocation.coordinates[0],
-      latitude: searchLocation.coordinates[1],
-      radius: SEARCH_RADIUS_METERS,
-    });
+    if (input.location) {
+      const [lon, lat] = input.location.coordinates;
+      const row = (await r.oneOrNone(
+        `
+        SELECT *
+        FROM public.place
+        WHERE location IS NOT NULL
+          AND ST_DWithin(
+            location,
+            ST_SetSRID(ST_MakePoint($/lon/, $/lat/), 4326),
+            $/radius/
+          )
+        ORDER BY location <-> ST_SetSRID(ST_MakePoint($/lon/, $/lat/), 4326)
+        LIMIT 1
+        `,
+        { lon, lat, radius: SEARCH_RADIUS_METERS }
+      )) as place | null;
+      if (row) return row;
+    }
 
-    return placeByLocation ? mapDbRowToPlace(placeByLocation) : null;
-
-  } catch (error) {
-    console.error('❌ เกิดข้อผิดพลาดในการค้นหาข้อมูลสถานที่:', error);
-    throw new Error('Failed to query place from the database.');
+    return null;
+  } catch (err) {
+    console.error("findPlaceInDB error:", err);
+    throw new Error("Failed to query place from DB");
   }
 }

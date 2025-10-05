@@ -78,7 +78,7 @@ export function addPlaceToDay(
   // 🔽 2. แก้ไข newPlace ให้ใช้ interface ที่ถูกต้อง และรูปแบบ GeoJSON ใหม่ 🔽
   const newPlace: PlaceItem = {
     type: 'place',
-    id: 'p_' + Date.now(),
+    id: null,
     name: name || 'Pinned location',
     place_id: place_id || '',
     location: { type: 'Point', coordinates: [lng, lat] }, // [longitude, latitude]

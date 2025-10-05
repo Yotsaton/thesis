@@ -1,33 +1,22 @@
 // src/place/functions/savePlaceLocationToDB.ts
+import type { ITask, IDatabase } from "pg-promise";
+import { db } from "../../database/db-promise";
+import type { place, geoJSONPoint } from "../../database/database.types";
 
-import {db} from '../../database/db-promise';
-import {geoJSONPoint} from '../types/place.type';
+const runner = (t?: ITask<any> | IDatabase<any>) => (t as any) ?? db;
 
-/**
- * บันทึกข้อมูลเฉพาะ Place ID และ Location ลงในฐานข้อมูล
- *
- * @param placeId - The UUID ที่สร้างขึ้นสำหรับสถานที่นี้
- * @param location - อ็อบเจกต์ geoJSONPoint ที่มีพิกัดของสถานที่
- * @throws Will throw an error if the database operation fails.
- */
+/** อัปเดตเฉพาะ location */
 export async function savePlaceLocationToDB(
-  placeId: string,
+  t: ITask<any> | IDatabase<any> | undefined = undefined,
   location: geoJSONPoint
-): Promise<void> {
-  const insertQuery = `
-    INSERT INTO public.place("place_ID", location, last_update_data)
-    VALUES ($/placeId/, ST_SetSRID(ST_MakePoint($/longitude/, $/latitude/), 4326), $/last_update_data/);
+): Promise<place> {
+  const r = runner(t);
+  const [lon, lat] = location.coordinates;
+  const sql = `
+    INSERT INTO public.place
+    (location, updated_at)
+    VALUES (ST_SetSRID(ST_MakePoint($/lon/, $/lat/), 4326), NOW())
+    RETURNING *;
   `;
-  try {
-    await db.none(insertQuery, {
-      placeId: placeId,
-      longitude: location.coordinates[0],
-      latitude: location.coordinates[1],
-      last_update_data: new Date(),
-    });
-    console.log(`✔️ บันทึก Location (ID: ${placeId}) ลงฐานข้อมูลสำเร็จ`);
-  } catch (error) {
-    console.error(`❌ เกิดข้อผิดพลาดในการบันทึก Location (ID: ${placeId}):`, error);
-    throw new Error('Failed to save place location to the database.');
-  }
+  return ( await r.one(sql, { lon, lat })) as place;
 }

@@ -1,9 +1,9 @@
-//src/components/DaySection.ts
+//src/component/DaySection.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
-import { attachAutocompleteWhenReady, getDirectionsBetweenTwoPoints, fetchAndDisplayPlaceDetails } from './Map.js';
+import { attachAutocompleteWhenReady, fetchAndDisplayPlaceDetails, drawRoutePolyline } from './Map.js';
 import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
@@ -41,21 +41,30 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
 
   const placesWithLoc = places.filter(p => p.location);
   const routePromises = [];
-  for (let i=0; i < placesWithLoc.length - 1; i++) {
-    const origin = placesWithLoc[i]?.location?.coordinates;
-    const destination = placesWithLoc[i+1]?.location?.coordinates;
-    if (origin && destination) {
-      routePromises.push(getDirectionsBetweenTwoPoints({lng: origin[0], lat: origin[1]}, {lng: destination[0], lat: destination[1]}));
+  //เว้นสถานที่แรก เพราะจุดเริ่มต้นไม่ต้องมี distance/duration
+  routePromises.push(null);
+  // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
+  const segmentsStr = localStorage.getItem(`day-${day.id}-route-segments`);
+  const segments = segmentsStr ? JSON.parse(segmentsStr) : null;
+  for (let i=0; i < placesWithLoc.length; i++) {
+    // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
+    if(segments && segments[i]) {
+      routePromises.push({
+        legs: [
+          {
+            distance: { text: `${(segments[i].distance / 1000).toFixed(1)} km`, value: segments[i].distance },
+            duration: { text: `${Math.round(segments[i].duration / 60)} min`, value: segments[i].duration }
+          }
+        ]
+      });
     }
   }
   const routes = await Promise.all(routePromises);
   
-  routes.forEach((route, i) => {
-    // 🔽 เพิ่มการตรวจสอบให้รัดกุมขึ้นเพื่อแก้ Error 🔽
+  routes.forEach((route: any, i: number) => {
     if (route && route.legs && route.legs.length > 0) {
       const leg = route.legs[0];
-      // ตรวจสอบให้แน่ใจว่า duration และ distance มีอยู่จริง
-      if (leg.duration && leg.distance) { 
+      if (leg.duration && leg.distance) {
           totalTravelSeconds += leg.duration.value;
           const fromItemIndex = day.items.indexOf(placesWithLoc[i]);
           const travelInfoEl = document.getElementById(`travel-info-${dayIndex}-${fromItemIndex}`);
@@ -188,7 +197,6 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
   const optimizeButton = daySection.querySelector<HTMLButtonElement>('.optimize-btn');
   if (optimizeButton) {
     optimizeButton.addEventListener('click', async () => {
-      // กรองเอาเฉพาะสถานที่ที่มีพิกัดออกมา
       const placesToOptimize = day.items.filter((item): item is PlaceItem => 
         item.type === 'place' && !!item.location
       );
@@ -202,12 +210,10 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
         optimizeButton.disabled = true;
         optimizeButton.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Optimizing...`;
 
-        // เรียกใช้ API
         const result = await optimizeDayRoute(placesToOptimize);
         
-        if (result.success && result.ordered) {
-          // 3. อัปเดต State ด้วยลำดับสถานที่ใหม่
-          // (หมายเหตุ: ตรรกะนี้เป็นการแทนที่ items เดิมด้วยลำดับใหม่ อาจต้องปรับแก้ตามความเหมาะสม)
+        if (result.success && result.ordered && result.route?.geometry) {
+          
           const newItems = day.items.map(item => {
             if (item.type === 'place') {
               return result.ordered!.find(p => p.id === item.id) || item;
@@ -215,18 +221,21 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
             return item;
           });
 
-          // จัดเรียง newItems ตามลำดับของ result.ordered
           newItems.sort((a, b) => {
               if (a.type === 'place' && b.type === 'place') {
-                  return result.ordered!.findIndex(p => p.id === a.id) - result.ordered!.findIndex(p => p.id === b.id);
+                  const aIndex = result.ordered!.findIndex(p => p.id === a.id);
+                  const bIndex = result.ordered!.findIndex(p => p.id === b.id);
+                  if (aIndex === -1 || bIndex === -1) return 0;
+                  return aIndex - bIndex;
               }
               return 0;
           });
           
           appState.currentTrip.days[dayIndex].items = newItems;
           
-          // สั่งให้วาดหน้าจอใหม่ทั้งหมดเพื่อแสดงผลลำดับใหม่
           handleAppRender();
+          drawRoutePolyline(day, result.route.geometry);
+          
         } else {
           alert(`Failed to optimize route: ${result.message || 'Unknown error'}`);
         }

@@ -59,5 +59,5 @@ export interface TripServiceInterface {
   loadTripList: () => Promise<any>;
   loadTrip: (tripId: string) => Promise<any>;
   saveCurrentTrip: () => Promise<any>;
-  deleteTrip: (tripId: string) => Promise<any>;
+  deleteTrip: (tripId: string, ifMatchUpdatedAt: string) => Promise<any>;
 }

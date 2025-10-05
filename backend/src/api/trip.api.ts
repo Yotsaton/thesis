@@ -2,26 +2,26 @@
 import { Router } from "express";
 import {requireAuth} from '../middleware/requireAuth'
 import { withAuth } from "../middleware/withAuth";
-import { createTripapi, getTripsapi, updateTripapi, deleteTripapi, 
-         getTripApi 
+import { createTripApi, getTripsapi, updateTripDeepApi, deleteTripSoftApi,
+  getFullTripApi
 } from '../trip/index';
-
 
 const router = Router();
 
 // POST /api/v1/auth/trip
-router.post('/create', requireAuth, withAuth(createTripapi as any));
+router.post('/full', requireAuth, withAuth(createTripApi as any));
 
-// GET /api/v1/auth/trip/
+// GET /api/v1/auth/trip
 router.get("/",requireAuth, withAuth(getTripsapi as any))
 
-// GET /api/v1/auth/trip/:trip_id
-router.get("/:trip_id",requireAuth, withAuth(getTripApi as any))
+// GET /api/v1/auth/trip
+router.get("/:trip_id/full",requireAuth, withAuth(getFullTripApi as any))
 
-// PATCH /api/v1/auth/trip
-router.patch("/:trip_id",requireAuth, withAuth(updateTripapi as any))
+// PUT /api/v1/auth/trip
+router.put("/:trip_id/full",requireAuth, withAuth(updateTripDeepApi as any))
 
 // DELETE /api/v1/auth/trip
-router.delete("/:trip_id", requireAuth, withAuth(deleteTripapi as any))
+router.delete("/:trip_id", requireAuth, withAuth(deleteTripSoftApi as any))
+
 
 export default router;

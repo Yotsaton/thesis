@@ -1,4 +1,4 @@
-// src/Route/functions/getRoute.ts
+  // src/Route/functions/getRoute.ts
 import "dotenv/config";
 import {ORSGeoJSONResponse, RouteResult} from "../types/types";
 import type { place, geoJSONPoint} from "../../database/database.types";
@@ -53,7 +53,8 @@ export async function getRoute(
     },
     body: JSON.stringify({
       coordinates: coords,
-      instructions: false, // ไม่ต้องการ steps
+      instructions: true,
+      radiuses: 1000 // อนุญาตให้เบี่ยงได้ 1 กม. (ค่า default คือ 350 เมตร)
     }),
   });
 

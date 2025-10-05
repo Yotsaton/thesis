@@ -1,46 +1,57 @@
 // src/place/services/updatePlaceInDB.ts
+import type { ITask, IDatabase } from "pg-promise";
+import { db, pgp } from "../../database/db-promise";
+import type { place } from "../../database/database.types";
+import type { PlacePatch } from "../types/types";
 
-import {db, pgp} from '../../database/db-promise';
-import {Place, geoJSONPoint} from '../types/place.type';
-import {findPlaceInDB} from './findPlaceInDB';
-import {mapDbRowToPlace} from './mapPlaceData';
+const runner = (t?: ITask<any> | IDatabase<any>) => (t as any) ?? db;
 
 /**
- * อัปเดตข้อมูลของสถานที่ที่มีอยู่ โดยใช้ Primary Key (place_id)
- *
- * @param placeId - Primary key ของสถานที่ที่ต้องการอัปเดต
- * @param updateData - อ็อบเจกต์ที่มีข้อมูลใหม่ (อัปเดตเฉพาะฟิลด์ที่ส่งมา)
- * @returns A Promise that resolves to the updated `Place` object.
+ * อัปเดตแบบ merge (เฉพาะฟิลด์ที่ส่งมา ไม่เขียนทับเป็น NULL)
  */
 export async function updatePlaceInDB(
-  placeId: string,
-  updateData: Partial<Omit<Place, 'place_id' | 'last_update_data'>>
-): Promise<Place> {
-  const cs = new pgp.helpers.ColumnSet([
-      'name_place',
-      { name: 'address', prop: 'formatted_address' },
-      { name: 'location', mod: ':raw', init: (col) => {
-          const loc = col.value as geoJSONPoint;
-          return pgp.as.format('ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)', {
-            lon: loc.coordinates[0], lat: loc.coordinates[1],
-          });
-        }},
-      'rating', 'user_rating_total', 'sumary_place',
-      { name: 'place_ID_by_ggm', prop: 'place_id_by_ggm' },
-      'category', 'url', { name: 'last_update_data', cnd: true },
-    ], { table: 'place' });
+  t: ITask<any> | IDatabase<any> | undefined = undefined,
+  id: string,
+  patch: PlacePatch
+): Promise<place> {
+  const r = runner(t);
+  const { location, ...rest } = patch;
 
-  const dataWithUpdateTimestamp = {...updateData, last_update_data: new Date()};
+  const sets: string[] = [];
+  const values: Record<string, unknown> = { id };
+
+  // ฟิลด์ทั่วไป
+  Object.entries(rest).forEach(([k, v]) => {
+    if (v === undefined) return;
+    sets.push(`${pgp.as.name(k)} = $/${k}/`);
+    values[k] = v;
+  });
+
+  // location
+  if (location && Array.isArray(location.coordinates)) {
+    sets.push(`location = ST_SetSRID(ST_MakePoint($/lon/, $/lat/), 4326)`);
+    values["lon"] = location.coordinates[0];
+    values["lat"] = location.coordinates[1];
+  }
+
+  if (!sets.length) {
+    // ไม่มีอะไรให้อัปเดต → คืนค่าปัจจุบัน
+    return await (r.one(`SELECT * FROM public.place WHERE id = $/id/`, { id })) as place;
+  }
+
+  const sql = `
+    UPDATE public.place
+    SET ${sets.join(", ")}, updated_at = NOW()
+    WHERE id = $/id/
+    RETURNING *;
+  `;
 
   try {
-    const updateQuery = pgp.helpers.update(dataWithUpdateTimestamp, cs) +
-                        pgp.as.format(' WHERE "place_ID" = ${id} RETURNING *', { id: placeId });
-
-    const updatedDbRow = await db.one(updateQuery);
-    console.log(`✔️ อัปเดตข้อมูล (ID: ${placeId}) สำเร็จ`);
-    return mapDbRowToPlace(updatedDbRow);
-  } catch (error) {
-    console.error(`❌ เกิดข้อผิดพลาดระหว่างการอัปเดตข้อมูล (ID: ${placeId}):`, error);
-    throw new Error('Failed to update place in the database.');
+    const row = (await r.one(sql, values)) as place;
+    console.log(`updatePlaceInDB: Updated place id=${id}`);
+    return row;
+  } catch (err) {
+    console.error("updatePlaceInDB error:", err);
+    throw new Error("Failed to update place");
   }
 }

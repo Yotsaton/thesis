@@ -27,6 +27,7 @@ app.get('/api/v1', (req, res) => {
 app.use("/api/v1/auth", user)
 app.use("/api/v1/auth/trip", trip)
 app.use("/api/v1/auth/route", routeapi)
+app.use("/api/v1/place",processPlaces)
 // app.use("/api/places",processPlaces)
  
 app.listen(port, () => {

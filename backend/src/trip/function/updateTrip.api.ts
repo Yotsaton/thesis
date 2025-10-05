@@ -1,71 +1,63 @@
 // src/trip/function/updateTrip.api.ts
-import { type RequestHandler } from "express";
-import {type AuthenticatedRequest} from "../../middleware/type.api";
-import { ParamSchema, UpdateBodySchema } from "../types/api.type";
-import { updateMyTrip } from "../function/updateTrip"; // ← ใช้ฟังก์ชันที่คุณมีอยู่
-import { UpdateOptions } from "../types/type";
+import { Response } from "express";
+import type { AuthenticatedRequest } from "../../middleware/type.api";
+import { ParamSchema, TripPayloadSchema } from "../types/api.types";
+import { updateTripDeep } from "./updateTrip";
+import { Trip } from "../types/types";
 
-// -------- Handler --------
-
-/**
- * อัปเดตทริปของผู้ใช้ที่ล็อกอิน (partial update)
- * body = {
- *   updated_at: Date,       // เวลาที่ดึงข้อมูลล่าสุด (สำหรับตรวจสอบ concurrency)
- *   header?: string,
- *   status?: string,
- *   start_plan?: Date,
- *   end_plan?: Date,
- * }
- * - ใช้สิทธิ์จาก req.auth (requireAuth ต้องมาก่อน)
- * - ใช้ updateMyTrip(auth, { trip_id, ...fields })
- */
-export const updateTripapi: RequestHandler = async (req, res) => {
+export const updateTripDeepApi = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const auth = (req as AuthenticatedRequest).auth!; // requireAuth มาก่อนแล้ว
+    if (!req.auth?.username) {
+      return res.status(401).json({ success: false, error: "unauthorized" });
+    }
     const { trip_id } = ParamSchema.parse(req.params);
-    const parsed = UpdateBodySchema.parse(req.body);
+    if (!trip_id) {
+      return res.status(400).json({ success: false, error: "trip_id_required" });
+    }
 
-    const { updated_at, header, status, start_plan, end_plan } = parsed;
-
-    // แยกส่วน options ออกมาตามข้อกำหนดใหม่ (ต้องส่งเสมอ)
-    const options: UpdateOptions = { ifMatchUpdatedAt: updated_at };
-
-    // เรียก service/DAO: อัปเดตเฉพาะฟิลด์ที่มีมา
-    const updated = await updateMyTrip(
-      auth,
-      trip_id,
-      {
-        ...(header !== undefined ? { header } : {}),
-        ...(status !== undefined ? { status } : {}),
-        ...(start_plan !== undefined ? { start_plan } : {}),
-        ...(end_plan !== undefined ? { end_plan } : {}),
-      },
-      options // ← ส่ง UpdateOptions แยกอาร์กิวเมนต์
-    );
-
-    return res.status(200).json({ 
-      success: true,
-      data: updated 
-    });
-  } catch (err: any) {
-    if (err?.name === "ZodError") {
-      return res.status(400).json({ 
+    // validate แบบหลวม ๆ ด้วย Zod (หรือจะใช้ schema ที่คุณมีอยู่ก็ได้)
+    const parse = TripPayloadSchema.safeParse(req.body);
+    if (!parse.success) {
+      return res.status(400).json({
         success: false,
-        error: "validation_error", 
-        details: err.issues 
+        error: "invalid_payload",
+        message: parse.error.issues.map(e => e.message).join("; "),
       });
     }
-    const msg = String(err?.message ?? "unexpected_error");
-    const status =
-      /not\s*found|ไม่มี|ไม่พบ/i.test(msg) ? 404 :
-      /forbidden|สิทธิ์|ไม่ได้รับอนุญาต/i.test(msg) ? 403 :
-      /conflict|version|updated_at|concurrency|precondition/i.test(msg) ? 409 : // เผื่อกรณีเวอร์ชันไม่ตรง
-      /constraint|check|date|range|invalid|ไม่ถูกต้อง/i.test(msg) ? 400 :
-      500;
 
-    return res.status(status).json({ 
+    const full = await updateTripDeep(req.auth, trip_id, parse.data as Trip);
+    return res.status(200).json({ success: true, data: full });
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+
+    // map conflict ให้เป็น 409
+    if (err?.code === "trip_conflict" || err?.code === "day_conflict" || err?.code === "route_conflict") {
+      return res.status(409).json({
+        success: false,
+        error: err.code,
+        message: msg,
+        details: err.details || null,
+      });
+    }
+
+    if (msg === "forbidden") {
+      return res.status(403).json({ success: false, error: "forbidden" });
+    }
+    if (msg === "trip_not_found") {
+      return res.status(404).json({ success: false, error: "trip_not_found" });
+    }
+    if (msg === "place_input_missing_place_id_or_location") {
+      return res.status(400).json({ success: false, error: "place_input_missing_place_id_or_location" });
+    }
+    if (msg === "place_not_found_from_process") {
+      return res.status(404).json({ success: false, error: "place_not_found_from_process" });
+    }
+
+    // อื่น ๆ
+    return res.status(500).json({
       success: false,
-      error: msg 
+      error: "unexpected_error",
+      message: msg,
     });
   }
 };

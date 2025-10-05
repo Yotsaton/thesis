@@ -6,7 +6,7 @@ import { renderItinerary } from '../../components/Itinerary.js';
 import { initMap, renderMapMarkersAndRoute } from '../../components/Map.js';
 import { initFlatpickr } from '../../helpers/flatpickr.js';
 import { prettyDate } from '../../helpers/utils.js';
-import type { Day } from '../../types.js'; // ⬅️ 1. แก้ไข: import Type จากที่ใหม่
+import type { Day } from '../../types.js';
 
 // --- Save Status Functionality ---
 let statusTimeout: number;
@@ -29,8 +29,8 @@ function updateSaveStatus(message: string, isError: boolean = false): void {
 // --- UI Rendering & Control Functions ---
 export function handleAppRender(): void {
   renderSidebar();
-  renderItinerary();
-  handleMapRender();
+  renderItinerary(); 
+  renderMapMarkersAndRoute();
   updateTripNameInput(appState.currentTrip.name);
 }
 

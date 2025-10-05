@@ -97,7 +97,7 @@ export async function saveCurrentTrip(): Promise<{ success: boolean; trip?: Trip
   return { success: true, trip: appState.currentTrip };
 }
 
-export async function deleteTrip(tripId: string): Promise<{ success: boolean }> {
+export async function deleteTrip(tripId: string, ifMatchUpdatedAt: string | Date): Promise<{ success: boolean}> {
   let trips = getTripsFromStorage();
   // 🔽 2. ใช้ id ในการกรอง 🔽
   trips = trips.filter((t) => t.id !== tripId);
