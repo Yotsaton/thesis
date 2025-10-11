@@ -4,7 +4,7 @@ import { getTripService } from '../services/config.js';
 import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { attachAutocompleteWhenReady, fetchAndDisplayPlaceDetails, drawRoutePolyline } from './Map.js';
-import { prettyDate, escapeHtml, debounce } from '../helpers/utils.js';
+import { prettyDate, escapeHtml, debounce, TRIP_COLORS } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
 import type { Day, DayItem, PlaceItem, NoteItem } from '../types.js';
@@ -18,18 +18,20 @@ function calculateStayDuration(startTime: string, endTime: string): number {
     const [eh, em] = endTime.split(':');
     let start = (+sh) * 60 + (+sm);
     let end = (+eh) * 60 + (+em);
-
-    if (end < start) {
-      end += 1440;
-    }
-    
+    if (end < start) end += 1440;
     return end - start;
   } catch { 
     return 0; 
   }
 }
 
+// === เพิ่มฟังก์ชันช่วย: ตั้งสีให้แต่ละวัน ===
+function assignDayColor(day: Day, index: number): void {
+  day.color = TRIP_COLORS[index % TRIP_COLORS.length];
+}
+
 async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promise<void> {
+  // (เนื้อหาเหมือนเดิม)
   const places = day.items.filter((i): i is PlaceItem => i.type === 'place');
   let totalTravelSeconds = 0;
   let totalStayMinutes = 0;
@@ -41,13 +43,10 @@ async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promis
 
   const placesWithLoc = places.filter(p => p.location);
   const routePromises = [];
-  //เว้นสถานที่แรก เพราะจุดเริ่มต้นไม่ต้องมี distance/duration
   routePromises.push(null);
-  // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
   const segmentsStr = localStorage.getItem(`day-${day.id}-route-segments`);
   const segments = segmentsStr ? JSON.parse(segmentsStr) : null;
   for (let i=0; i < placesWithLoc.length; i++) {
-    // ดึงข้อมูลระยะทาง และ เวลา จาก localStorage
     if(segments && segments[i]) {
       routePromises.push({
         legs: [
@@ -124,10 +123,15 @@ function renderItems(day: Day, dayIndex: number, container: HTMLElement): void {
 }
 
 export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElement {
+  assignDayColor(day, dayIndex); // ✅ กำหนดสีของวันนี้
+  
   const daySection = document.createElement('div');
   daySection.className = 'day-section';
   daySection.id = `day-section-${dayIndex}`;
   daySection.dataset.dayIdx = String(dayIndex);
+
+
+  // (ส่วน HTML template เดิมเหมือนเดิมทั้งหมด)
   daySection.innerHTML = `
     <div class="day-header-section">
       <h2 class="day-title">${prettyDate(day.date)}</h2>
