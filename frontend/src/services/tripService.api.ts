@@ -18,7 +18,15 @@ function updateSaveStatus(message: string, isError: boolean = false): void {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+let tripRequestInProgress = false;
+
 async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+  if (tripRequestInProgress) {
+    console.warn("Skipped duplicate trip API request:", endpoint);
+    return { success: false, message: "Duplicate request skipped" };
+  }
+  tripRequestInProgress = true;
+
   const controller = new AbortController();
   try {
     const res = await fetch(`${API_URL}${endpoint}`, {
@@ -27,27 +35,20 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
       signal: controller.signal,
       headers: {
         "Accept": "application/json",
-        ...(options.headers || {}),
+        "Content-Type": "application/json"
       },
-      redirect: 'manual',
     });
 
-    const ctype = res.headers.get('content-type') || '';
-    const isJson = ctype.includes('application/json');
-
     if (!res.ok) {
-      const body = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
-      const message = (isJson && typeof body === 'object' && body && (body as any).message) || `HTTP ${res.status} ${res.statusText}`;
-      const errorObj = new Error(String(message));
-      (errorObj as any).status = res.status;
-      throw errorObj;
+      const errorData = await res.json().catch(() => ({ message: res.statusText }));
+      throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
     }
-
-    return res.status === 204 ? { success: true } : await res.json();
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "A network error occurred.";
-    console.error(`API request error to ${endpoint}:`, error);
-    return { success: false, message: errorMessage };
+    return await res.json();
+  } catch (err) {
+    console.error(`API request error to ${endpoint}:`, err);
+    return { success: false, message: err instanceof Error ? err.message : "Network error" };
+  } finally {
+    tripRequestInProgress = false;
   }
 }
 
