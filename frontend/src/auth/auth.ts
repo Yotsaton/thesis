@@ -175,7 +175,7 @@ export function initializeAuthUI(): void {
         const data = await register(username, email, password);
 
         if (data?.success) {
-            if (userEmailOtp) userEmailOtp.textContent = email;
+            if (userEmailOtp) userEmailOtp.textContent = username;
             resetContainerState();
             container?.classList.add('active-otp');
             startOtpTimer(OTP_TIMER_DURATION, timerElement, resendBtn);
@@ -197,16 +197,16 @@ export function initializeAuthUI(): void {
 
     validateBtn?.addEventListener('click', async () => {
         const otpCode = Array.from(otpInputs).map(i => i.value).join('');
-        const email = userEmailOtp?.textContent;
+        const username = userEmailOtp?.textContent;
         if (otpCode.length !== 6) {
             alert('Please enter a 6-digit OTP.');
             return;
         }
-        if (!email) {
-            alert('Could not find user email. Please try again.');
+        if (!username) {
+            alert('Could not find username. Please try again.');
             return;
         }
-        const data = await validateOtp(email, otpCode);
+        const data = await validateOtp(username, otpCode);
         if (data?.success) {
             alert('Account verified successfully! Please log in.');
             resetContainerState();

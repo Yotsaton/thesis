@@ -84,7 +84,7 @@ export async function recommentFromProvince(
   // category filter (เที่ยวเท่านั้น)
   const finalCategories = sanitizeRequestedCategories(categories);
   values.push(finalCategories);
-  whereParts.push(`category && $${values.length}::text[]`);
+  whereParts.push(`category && $${values.length}::varchar[]`);
 
   const whereSQL = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 

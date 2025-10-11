@@ -13,18 +13,27 @@ export type PlaceInsert = Omit<place, "id" | "updated_at">;
 /** payload สำหรับ patch */
 export type PlacePatch = Partial<place>;
 
-/** โครง response จาก Google ที่เราสนใจ (ให้พอเพื่อ map เข้าฐานข้อมูล) */
-export interface GooglePlaceDetailsResponse {
-  result?: {
-    name?: string;
-    formatted_address?: string;
-    geometry?: { location?: { lat?: number; lng?: number } };
-    place_id?: string;
-    rating?: number;
-    user_ratings_total?: number;
-    editorial_summary?: { overview?: string };
-    url?: string;
-    types?: string[];
+/**
+ * โครงสร้าง Place (v1) ที่เราสนใจบางส่วนจาก Places API (New)
+ * เอกสาร: https://developers.google.com/maps/documentation/places/web-service/place-details
+ * หมายเหตุ: ใน v1 คีย์หลักใช้ "id" แทน "place_id (legacy)", URI แผนที่อยู่ใน "googleMapsUri",
+ * ที่อยู่ใช้ "formattedAddress", พิกัดอยู่ใต้ "location.latLng".
+ */
+export interface GooglePlaceV1Place {
+  id?: string; // Place ID
+  displayName?: { text?: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: {
+    latitude?: number,
+    longitude?: number 
   };
-  status: string;
+  rating?: number;
+  userRatingCount?: number;
+  editorialSummary?: { overview?: string };
+  googleMapsUri?: string;
+  types?: string[]; // ประเภทสถานที่ (ใหม่เป็น snake_case เดิมกลายเป็น lowerCamel? -> v1 ให้เป็น enum-like string เช่น "restaurant"
+  primaryType?: string; // ประเภทหลัก เช่น "place_of_worship" ฯลฯ
 }
+
+/** response ของการเรียก v1 /places/{placeId} */
+export type GooglePlaceV1PlaceDetailsResponse = GooglePlaceV1Place;

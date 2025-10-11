@@ -68,7 +68,7 @@ export async function processPlaces(
     const existedid = await findPlaceInDB(r, input);
     if (!existedid) {
       console.log(`[CREATE] 🕵️ ไม่พบ "${input.place_id_by_ggm}", กำลังดึงข้อมูล...`);
-      const newPlace = await fetchGooglePlaceDetails(apiKey, input.place_id_by_ggm);
+      const newPlace = await fetchGooglePlaceDetails(input.place_id_by_ggm);
       if(newPlace){
         return await savePlaceToDB(r, newPlace as PlaceInsert);
       }
@@ -76,7 +76,7 @@ export async function processPlaces(
 
     } else if (isStale(existedid.updated_at)) {
       console.log(`[UPDATE] 🔄 ข้อมูลของ "${existedid.name_place}" เก่า, กำลังอัปเดต...`);
-      const newPlace = await fetchGooglePlaceDetails(apiKey, input.place_id_by_ggm);
+      const newPlace = await fetchGooglePlaceDetails(input.place_id_by_ggm);
       if(newPlace){
         return await updatePlaceInDB(r, existedid.id, newPlace as PlacePatch);
       }

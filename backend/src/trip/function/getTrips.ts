@@ -87,7 +87,7 @@ export async function listTripsAuthorized(
       t.created_at,
       t.header,
       t.updated_at,
-      t.deleted_at       -- <<— เพิ่มฟิลด์นี้ให้ตรง type
+      t.deleted_at
     FROM public.trip t
     ${whereClause}
   `;

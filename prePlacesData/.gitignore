@@ -3,5 +3,8 @@ node_modules
 .env
 desktop.ini
 
+postPlacesFetch.correct.csv
+postPlacesFetch.uncertain.csv
+postPlacesFetch.incorrect.csv
 /src/generated/prisma
 .ipynb_checkpoints
