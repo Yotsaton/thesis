@@ -52,15 +52,12 @@ const DIRECT_MAP: Record<string, string> = {
 
   // แลนด์มาร์ก/ประวัติศาสตร์
   landmark: "แลนด์มาร์ก",
-  historical_landmark: "โบราณสถาน/แลนด์มาร์ก",
+  historical_landmark: "โบราณสถาน",
   historical_place: "โบราณสถาน",
   monument: "อนุสาวรีย์",
   palace: "พระราชวัง",
-  castle: "ปราสาท/ปราสาทหิน",
+  castle: "ปราสาท",
 
-  // ทั่วไปสำหรับเที่ยว
-  tourist_attraction: "แหล่งท่องเที่ยว",
-  point_of_interest: "สถานที่น่าสนใจ",
 };
 
 /** คำหลัก (ไทย/อังกฤษ) ไว้เดา “place_of_worship” */

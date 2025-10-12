@@ -8,6 +8,7 @@ import trip from "./api/trip.api";
 import routeapi from "./api/route.api";
 import processPlaces from "./api/place.api";
 import recomment from "./api/recomment.api";
+import activity from "./api/activityLogs.api";
 
 import "./job/presence-cleaner";
 
@@ -28,8 +29,9 @@ app.get('/api/v1', (req, res) => {
 app.use("/api/v1/auth", user)
 app.use("/api/v1/auth/trip", trip)
 app.use("/api/v1/auth/route", routeapi)
-app.use("/api/v1/place",processPlaces)
-app.use("/api/v1/auth/recomment",recomment)
+app.use("/api/v1/place", processPlaces)
+app.use("/api/v1/auth/recomment", recomment)
+app.use("/api/v1/auth/activity", activity)
 // app.use("/api/places",processPlaces)
  
 app.listen(port, () => {

@@ -2,7 +2,7 @@
 import { Response } from "express";
 import type { AuthenticatedRequest } from "../../middleware/type.api";
 import { ParamSchema, TripPayloadSchema } from "../types/api.types";
-import { updateTripDeep } from "./updateTrip";
+import { updateTripDeep } from "../function/updateTrip";
 import { Trip } from "../types/types";
 
 export const updateTripDeepApi = async (req: AuthenticatedRequest, res: Response) => {

@@ -2,7 +2,7 @@
 import 'dotenv/config'
 import type { Request, Response } from "express";
 import type { ResolveInput } from "../types/types";
-import { processPlaces } from "./processPlaces";
+import { processPlaces } from "../functions/processPlaces";
 import { ResolveInputSchema, ResolveInputDTO} from "../types/api.types"
 
 /**

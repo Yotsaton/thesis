@@ -1,3 +1,3 @@
 // src/recomment/index.ts
 
-export * from "./functions/recommentFromProvince.api";
+export * from "./api/recommentFromProvince.api";

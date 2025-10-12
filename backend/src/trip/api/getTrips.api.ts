@@ -2,7 +2,7 @@
 import {type Response } from "express";
 import {type AuthenticatedRequest, Accessor} from "../../middleware/type.api";
 import { ListQuerySchema, type ListQueryParsed, ParamSchema} from "../types/api.types";
-import { getTrips, getTrip} from "./getTrips";
+import { getTrips, getTrip} from "../function/getTrips";
 
 /**
  * GET /api/v1/auth/trip

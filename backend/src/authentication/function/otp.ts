@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import crypto from 'crypto';
 import type { users, otps } from "../../database/database.types";
+import { authLogSafe } from '../../activity/functions/authAudit';
 
 
 const OTP_TTL_MIN = Number(process.env.OTP_TTL_MIN ?? 5);           // อายุ OTP (นาที)
@@ -181,6 +182,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
       await t.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
     });
 
+    await authLogSafe(req, username, { action: "verify_success" });
     return res.status(200).json({ 
       message: 'otp_verified',
       success: true,
@@ -280,6 +282,7 @@ export const resendOTP = async (req: Request, res: Response) => {
       text: `รหัสยืนยันของคุณคือ: ${otp}\nรหัสจะหมดอายุใน ${OTP_TTL_MIN} นาที`,
     });
 
+    await authLogSafe(req, username, { action: "resend_otp" });
     return res.status(200).json({
       success: true,
       message: 'otp_resent',

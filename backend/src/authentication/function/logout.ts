@@ -31,8 +31,9 @@ export const logout = async (req: Request, res: Response) => {
         success: false,
       });
     }
-
-    // ฝั่ง client ควรลบทิ้ง token ปัจจุบันทันที (localStorage / cookie)
+    // ลบคุกกี้
+    res.clearCookie('access_token', { httpOnly: true, sameSite: 'lax', secure: true });
+    
     return res.status(200).json({
       success: true,
       message: 'logout_success',

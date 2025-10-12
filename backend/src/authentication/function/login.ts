@@ -2,11 +2,12 @@
 import 'dotenv/config';
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { success, uuid, z } from 'zod';
+import { z } from 'zod';
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../database/db-promise";
 import type { users } from "../../database/database.types";
+import { authLogSafe } from '../../activity/functions/authAudit';
 
 const JWT_ACCESS_SECRET : Secret = process.env.JWT_ACCESS_SECRET as Secret;
 const accessTokenTTL: SignOptions = {
@@ -61,11 +62,15 @@ export async function login(req: Request, res: Response) {
 
   // 2) ตรวจ password
   const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ 
-    error: "invalid credentials",
-    success: false,
-  });
-  
+  if (!match) {
+    // log ล็อกอินไม่สำเร็จ
+    await authLogSafe(req, user.username, { action: "login_failed" });
+    return res.status(401).json({ 
+      error: "invalid credentials",
+      success: false,
+    });
+  }
+
   // 3) อัพเดท user table
   await db.none(
     `UPDATE public.users
@@ -75,7 +80,6 @@ export async function login(req: Request, res: Response) {
   );
 
   // 4) ออก token
-  console.log(JWT_ACCESS_SECRET);
   const access  = jwt.sign({ 
       sub : user.username,
       ver : user.token_version,
@@ -84,9 +88,13 @@ export async function login(req: Request, res: Response) {
       is_staff_user : user.is_staff_user ?? false,
     },
     JWT_ACCESS_SECRET,
-    accessTokenTTL);
+    accessTokenTTL
+  );
+  // log
+  await authLogSafe(req, user.username, { action: "login_success" });
 
-  res
+  // 5) ส่ง token ในคุกกี้
+  return res
     .cookie(ACCESS_COOKIE, access, accessCookieOpts)
     .json({ 
       message: "logged in",

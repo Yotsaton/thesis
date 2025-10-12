@@ -1,7 +1,7 @@
 // src/trip/function/createTrip.api.ts
 import { Response } from "express";
 import type { AuthenticatedRequest, Accessor } from "../../middleware/type.api";
-import { createTrip } from "./createTrip";
+import { createTrip } from "../function/createTrip";
 import { TripPayloadSchema } from "../types/api.types";
 import { Trip } from "../types/types"; // import Trip type
 

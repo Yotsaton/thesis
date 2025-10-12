@@ -1,7 +1,7 @@
 // src/trip/function/deleteTrip.api.ts
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../../middleware/type.api";
-import { deleteTripSoft } from "./deleteTrip";
+import { deleteTripSoft } from "../function/deleteTrip";
 import { ParamSchema, DeleteBodySchema} from "../types/api.types"
 
 export const deleteTripSoftApi = async (req: AuthenticatedRequest, res: Response) => {

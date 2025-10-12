@@ -7,6 +7,7 @@ import { success, z } from 'zod';
 import type {users} from "../../database/database.types"
 import type {users_insert_params} from "../types/types"
 import {sendOTP}from "./otp"
+import { authLogSafe } from "../../activity/functions/authAudit";
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_COST)
 type users_public = Omit<users, "password">;
@@ -101,6 +102,7 @@ export const registerUser = async (req: Request, res: Response) => {
     // 7) ตอบกลับ 
     console.log(newUser);
     const resultotp = sendOTP(newUser.username);
+    await authLogSafe(req, newUser.username, { action: "register_success" });
     return res.status(201).json({
       message: 'ลงทะเบียนสำเร็จ',
       success: true,

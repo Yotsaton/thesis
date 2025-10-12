@@ -1,7 +1,7 @@
 // src/trip/function/getFullTripByid.api.ts
 import { Response } from "express";
 import type { AuthenticatedRequest, Accessor } from "../../middleware/type.api";
-import { getFullTrip } from "./getFullTripByid";
+import { getFullTrip } from "../function/getFullTripByid";
 import { ParamSchema} from "../types/api.types"
 
 /**

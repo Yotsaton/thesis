@@ -1,11 +1,11 @@
 // src/trip/index.ts
 
 // function export
-export * from './function/createTrip.api'
-export * from './function/deleteTrip.api'
-export * from './function/getTrips.api'
-export * from './function/getFullTripByid.api'
-export * from './function/updateTrip.api'
+export * from './api/createTrip.api'
+export * from './api/deleteTrip.api'
+export * from './api/getTrips.api'
+export * from './api/getFullTripByid.api'
+export * from './api/updateTrip.api'
 
 // types export
 export * from './types/types'

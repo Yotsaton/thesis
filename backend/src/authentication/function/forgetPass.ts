@@ -8,6 +8,7 @@ import { success, z } from 'zod';
 import crypto from 'crypto';
 
 import type { users, otps } from "../../database/database.types";
+import { authLogSafe } from '../../activity/functions/authAudit';
 
 // ===== ENV / Config =====
 const SALT_ROUNDS = Number(process.env.BCRYPT_COST) || 10;
@@ -119,6 +120,8 @@ export const requestResetLink = async (req: Request, res: Response) => {
         `<p>ลิงก์นี้จะหมดอายุใน ${RESET_TTL_MIN} นาที</p>`,
     });
     console.log(link); //checking
+
+    await authLogSafe(req, user.username, { action: "reset_link_sent" });
     return res.status(200).json({
       success: true,
       message: 'reset_link_sent',
@@ -205,6 +208,7 @@ export const confirmResetWithLink = async (req: Request, res: Response) => {
       await t.none(`DELETE FROM public.otps WHERE id = $1`, [row.id]);
     });
 
+    await authLogSafe(req, row.username, { action: "password_reset_success" });
     return res.status(200).json({ 
       message: 'password_reset_success',
       success: true,  
