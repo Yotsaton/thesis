@@ -1,14 +1,11 @@
-// src/types.ts
-
-// --- Base Types ---
 export interface GeoJSONPoint {
   type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates: [number, number];
 }
-export type DateYMD = string; // 'YYYY-MM-DD'
-export type Time = string; // 'HH:mm'
 
-// --- Item Types (แยกประเภทชัดเจน) ---
+export type DateYMD = string;
+export type Time = string;
+
 export interface PlaceItem {
   type: 'place';
   id: string | null;
@@ -27,7 +24,6 @@ export interface NoteItem {
 
 export type DayItem = PlaceItem | NoteItem;
 
-// --- Trip Structure Types ---
 export interface Day {
   id: string | null;
   date: DateYMD;
@@ -35,6 +31,10 @@ export interface Day {
   items: DayItem[];
   updatedAt?: string;
   color: string;
+  summary?: {
+    distance: number;
+    duration: number;
+  };
 }
 
 export interface Trip {
@@ -46,7 +46,6 @@ export interface Trip {
   updatedAt?: string;
 }
 
-// --- App State Type ---
 export interface AppState {
   trips: Trip[];
   currentTripId: string | null;
@@ -60,4 +59,10 @@ export interface TripServiceInterface {
   loadTrip: (tripId: string) => Promise<any>;
   saveCurrentTrip: () => Promise<any>;
   deleteTrip: (tripId: string, ifMatchUpdatedAt: string) => Promise<any>;
+}
+
+// ✅ เพิ่ม type สำหรับ cache geometry
+export interface CachedRouteGeometry {
+  geometry: { coordinates: [number, number][] };
+  savedAt: number;
 }

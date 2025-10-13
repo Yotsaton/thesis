@@ -1,6 +1,6 @@
-// state/index.ts
+// src/state/index.js
 import { getTripService } from '../services/config.js';
-// 🔽 1. ลบ interface เดิมออก แล้ว import Type ทั้งหมดมาจากที่ใหม่ 🔽
+// import { renderMapMarkersAndRoute } from '../components/Map.js'; // ✅ เพิ่มการ import เพื่อ refresh map
 import type { Trip, Day, PlaceItem, AppState } from '../types.js';
 
 // --- กำหนด Type ให้กับ appState object ---
@@ -15,17 +15,17 @@ export const appState: AppState = {
   activeDayIndex: null,
 };
 
-// Helper function (internal to this module)
+// --- Helper Function ---
 async function saveCurrentTrip(): Promise<void> {
-    try {
-        const tripService = await getTripService();
-        await tripService.saveCurrentTrip();
-    } catch (error) {
-        console.error("Failed to save trip:", error);
-    }
+  try {
+    const tripService = await getTripService();
+    await tripService.saveCurrentTrip();
+  } catch (error) {
+    console.error('Failed to save trip:', error);
+  }
 }
 
-// --- ฟังก์ชันทั้งหมดตอนนี้จะใช้ Type ที่ import เข้ามา ---
+// --- การจัดการ State หลัก ---
 export function setTripList(trips: Trip[]): void {
   appState.trips = trips;
 }
@@ -57,36 +57,51 @@ export function updateTripDays(newDays: Day[]): void {
   if (appState.currentTrip) {
     appState.currentTrip.days = newDays;
   }
-  setActiveDayIndex(null);
+  // setActiveDayIndex(null);
   saveCurrentTrip();
 }
 
-export function addPlaceToDay(
+// --- ✅ เพิ่มสถานที่ในแต่ละวัน พร้อม refresh map ---
+export async function addPlaceToDay(
   dayIndex: number,
   name: string,
   lat: number,
   lng: number,
   place_id: string = ''
-): void {
-  const day = appState.currentTrip?.days[dayIndex];
-  if (!day) return;
-  
+): Promise<void> {
+  const trip = appState.currentTrip;
+  if (!trip || !trip.days[dayIndex]) return;
+
+  const day: Day = trip.days[dayIndex];
+
+  // ตรวจสอบและสร้าง array items ถ้ายังไม่มี
   if (!day.items) {
     day.items = [];
   }
 
-  // 🔽 2. แก้ไข newPlace ให้ใช้ interface ที่ถูกต้อง และรูปแบบ GeoJSON ใหม่ 🔽
+  // ✅ ใช้ Type ที่ถูกต้องจาก PlaceItem
   const newPlace: PlaceItem = {
-    type: 'place',
     id: null,
+    type: 'place',
     name: name || 'Pinned location',
     place_id: place_id || '',
-    location: { type: 'Point', coordinates: [lng, lat] }, // [longitude, latitude]
+    location: { type: 'Point', coordinates: [lng, lat] },
     startTime: '',
     endTime: ''
   };
 
-  appState.activeDayIndex = dayIndex;
   day.items.push(newPlace);
-  saveCurrentTrip();
+
+  // ✅ เก็บค่า focus เดิมไว้ก่อน save
+  const prevFocus = appState.activeDayIndex;
+  appState.activeDayIndex = dayIndex;
+
+  try {
+    await saveCurrentTrip();
+  } catch (err) {
+    console.warn('Trip save failed temporarily:', err);
+  }
+
+  // ✅ Restore focus หลัง save (ป้องกัน overview mode)
+  appState.activeDayIndex = prevFocus ?? dayIndex;
 }

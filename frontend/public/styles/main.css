@@ -118,9 +118,19 @@ html, body {
     overflow-y: auto;
 }
 /* ... rest of the file is the same as the correct version you provided ... */
-.sidebar h3 {
+.sidebar h2 {
     font-weight: 600;
+    padding-left: 35px;
 }
+
+.clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .clickable:hover {
+    color: #739371;
+  }
+
 .sidebar .menu {
     list-style: none;
     padding-left: 0;

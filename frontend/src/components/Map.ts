@@ -1,18 +1,21 @@
+// src/components/Map.ts
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
 import { getDirections } from '../services/routeService.js';
-import type { Day, PlaceItem, GeoJSONPoint } from '../types.js';
+import { TRIP_COLORS } from '../helpers/utils.js';
+import type { Day, PlaceItem } from '../types.js';
 
-// --- Type Definitions for Google Maps Objects ---
+// --- Google Maps Types ---
 type GoogleMap = google.maps.Map;
 type GoogleMarker = google.maps.Marker;
 type LatLngBounds = google.maps.LatLngBounds;
 
-// --- Module State Variables ---
+// --- State ---
 let map: GoogleMap;
 let markers: GoogleMarker[] = [];
 let dailyRoutePolylines: google.maps.Polyline[] = [];
+let crossDayLines: google.maps.Polyline[] = [];
 let geocoder: google.maps.Geocoder;
 let mapsApiReady = false;
 let temporaryMarker: GoogleMarker | null = null;
@@ -22,7 +25,7 @@ const mapReadyPromise = new Promise<boolean>(resolve => {
   mapReadyPromiseResolver = resolve;
 });
 
-// --- Functions ---
+// --- Helpers ---
 export function clearTemporaryMarker(): void {
   if (temporaryMarker) {
     temporaryMarker.setMap(null);
@@ -66,6 +69,7 @@ function createColoredMarkerIcon(color: string) {
   };
 }
 
+// --- Place Detail ---
 export async function fetchAndDisplayPlaceDetails(
   placeId: string,
   dayIndex: number | null = null
@@ -102,6 +106,7 @@ export async function fetchAndDisplayPlaceDetails(
   }
 }
 
+// --- Init Map ---
 function onMapsApiLoaded(): void {
   const mapElement = document.getElementById('map');
   if (!mapElement) {
@@ -118,30 +123,27 @@ function onMapsApiLoaded(): void {
   });
   geocoder = new google.maps.Geocoder();
 
-  map.addListener(
-    'click',
-    (e: google.maps.MapMouseEvent | google.maps.IconMouseEvent) => {
-      clearTemporaryMarker();
-      if ('placeId' in e && e.placeId) {
-        (e as google.maps.IconMouseEvent).stop();
-        fetchAndDisplayPlaceDetails(e.placeId);
-        return;
-      }
-      if (e.latLng) {
-        geocoder.geocode({ location: e.latLng }, (results, status) => {
-          if (status === 'OK' && results && results[0]) {
-            const placeData: PlaceDetails = {
-              name: results[0].formatted_address,
-              formatted_address: results[0].formatted_address,
-              geometry: { location: e.latLng! },
-            };
-            panToAndHighlightPlace(placeData);
-            renderPlaceDetailsPanel(placeData);
-          }
-        });
-      }
+  map.addListener('click', (e: google.maps.MapMouseEvent | google.maps.IconMouseEvent) => {
+    clearTemporaryMarker();
+    if ('placeId' in e && e.placeId) {
+      (e as google.maps.IconMouseEvent).stop();
+      fetchAndDisplayPlaceDetails(e.placeId);
+      return;
     }
-  );
+    if (e.latLng) {
+      geocoder.geocode({ location: e.latLng }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const placeData: PlaceDetails = {
+            name: results[0].formatted_address,
+            formatted_address: results[0].formatted_address,
+            geometry: { location: e.latLng! },
+          };
+          panToAndHighlightPlace(placeData);
+          renderPlaceDetailsPanel(placeData);
+        }
+      });
+    }
+  });
 
   mapsApiReady = true;
   mapReadyPromiseResolver(true);
@@ -162,50 +164,48 @@ export function initMap(): Promise<boolean> {
   return mapReadyPromise;
 }
 
-// 🔽 1. ฟังก์ชันนี้จะไม่ล้าง Polyline เก่า แต่จะเพิ่มเส้นใหม่เข้าไป 🔽
-export function drawRoutePolyline(
-  day: Day,
-  routeGeometry: { coordinates: [number, number][] }
-): void {
+// --- Day Route Polyline ---
+export function drawRoutePolyline(day: Day, routeGeometry: { coordinates: [number, number][] }): void {
   if (!map) return;
-
-  const path = routeGeometry.coordinates.map(
-    (coords: [number, number]) => ({
-      lng: coords[0],
-      lat: coords[1],
-    })
-  );
-
+  const path = routeGeometry.coordinates.map(coords => ({ lng: coords[0], lat: coords[1] }));
   const routePolyline = new google.maps.Polyline({
-    path: path,
+    path,
     geodesic: true,
     strokeColor: day.color || '#FF0000',
-    strokeOpacity: 0.8,
+    strokeOpacity: 0.85,
     strokeWeight: 5,
   });
   routePolyline.setMap(map);
   dailyRoutePolylines.push(routePolyline);
 }
 
-// 🔽 2. renderMapMarkersAndRoute พร้อมเพิ่ม "เส้นข้ามวัน" 🔽
+// --- Main Render (with Smart Cache) ---
 export async function renderMapMarkersAndRoute(): Promise<void> {
   if (!mapsApiReady || !map) return;
 
   const days: Day[] = appState.currentTrip.days;
   const focusedDayIndex = appState.activeDayIndex;
 
-  markers.forEach(m => m.setMap(null));
+  days.forEach((day, i) => {
+    if (!day.color) day.color = TRIP_COLORS[i % TRIP_COLORS.length];
+  });
+
+  // --- clear layers ---
+  for (const arr of [markers, dailyRoutePolylines, crossDayLines]) {
+    arr.forEach((el: any) => el.setMap && el.setMap(null));
+  }
   markers = [];
-  dailyRoutePolylines.forEach(p => p.setMap(null));
   dailyRoutePolylines = [];
+  crossDayLines = [];
 
   if (!days || days.length === 0) return;
 
   const bounds: LatLngBounds = new google.maps.LatLngBounds();
   let overallIndex = 1;
 
-  // --- วาดหมุดของแต่ละวัน ---
-  days.forEach((day: Day, dayIndex: number) => {
+  // --- Draw markers ---
+  for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
+    const day = days[dayIndex];
     const placesOnly = (day.items || []).filter(
       (item): item is PlaceItem =>
         item.type === 'place' &&
@@ -214,132 +214,134 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
         item.location.coordinates.length === 2
     );
 
-    const isVisible = focusedDayIndex === null || focusedDayIndex === dayIndex;
-    if (isVisible && placesOnly.length > 0) {
-      placesOnly.forEach((p: PlaceItem) => {
-        if (p.location) {
-          const position = {
-            lat: p.location.coordinates[1],
-            lng: p.location.coordinates[0],
-          };
-          const marker = new google.maps.Marker({
-            position,
-            map,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: day.color,
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 2,
-              scale: 11,
-            },
-            label: {
-              text: String(overallIndex),
-              color: 'white',
-              fontWeight: 'bold',
-            },
-            title: p.name ?? '',
-          });
-          markers.push(marker);
-          bounds.extend(position);
-          overallIndex++;
-        }
-      });
-    }
-  });
+    const isVisible =
+      typeof focusedDayIndex !== 'number' || focusedDayIndex === dayIndex;
+    if (!isVisible || placesOnly.length === 0) continue;
 
-  // --- เส้นทางในแต่ละวัน ---
+    for (const p of placesOnly) {
+      const [lng, lat] = p.location!.coordinates;
+      const position = { lat, lng };
+      const marker = new google.maps.Marker({
+        position,
+        map,
+        icon: createColoredMarkerIcon(day.color),
+        label: { text: String(overallIndex), color: 'white', fontWeight: 'bold' },
+        title: p.name ?? '',
+      });
+      markers.push(marker);
+      bounds.extend(position);
+      overallIndex++;
+    }
+  }
+
+  // --- Within-day route (Smart Cache) ---
   const daysToRoute =
     focusedDayIndex !== null && days[focusedDayIndex]
       ? [days[focusedDayIndex]]
       : days;
 
   for (const day of daysToRoute) {
-    const placesWithLoc = (day.items || []).filter(
-      (i): i is PlaceItem =>
-        i.type === 'place' && !!i.location?.coordinates
-    );
-    if (placesWithLoc.length >= 2) {
-      const origin = placesWithLoc[0].location!;
-      const destination = placesWithLoc[placesWithLoc.length - 1].location!;
-      const waypoint = placesWithLoc.slice(1, -1).map(p => p.location!) || [];
+    const cacheKey = `day-${day.id}-route-geometry`;
+    const hashKey = `day-${day.id}-route-hash`;
 
-      const result = await getDirections(origin, destination, waypoint);
-      if (result.success && result.route?.geometry?.coordinates) {
-        drawRoutePolyline(day, result.route.geometry);
-      }
-      if (result.success && result.route) {
-        localStorage.setItem(
-          `day-${day.id}-route-segments`,
-          JSON.stringify(result.route.segments)
-        );
+    const places = (day.items || []).filter(
+      (i): i is PlaceItem => i.type === 'place' && !!i.location?.coordinates
+    );
+
+    if (places.length < 2) {
+      localStorage.removeItem(cacheKey);
+      localStorage.removeItem(hashKey);
+      localStorage.removeItem(`day-${day.id}-route-segments`);
+      localStorage.removeItem(`day-${day.id}-summary`);
+      continue;
+    }
+
+    // สร้าง hash จากลำดับและพิกัด
+    const newHash = places
+      .map(p => `${p.id || p.name}:${p.location!.coordinates.join(',')}`)
+      .join('|');
+
+    const oldHash = localStorage.getItem(hashKey);
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached && oldHash === newHash) {
+      try {
+        const { geometry, savedAt } = JSON.parse(cached);
+        const isExpired = Date.now() - savedAt > 1000 * 60 * 60 * 6; // 6 ชม.
+        if (!isExpired && geometry?.coordinates) {
+          console.log(`[MAP] ✅ Using cached route for ${day.id}`);
+          drawRoutePolyline(day, geometry);
+          // แจ้ง UI เผื่อ DaySection ต้องรีเฟรชสรุป
+          window.dispatchEvent(new CustomEvent('route-cache-updated', { detail: { dayId: day.id } }));
+          continue;
+        }
+      } catch (err) {
+        console.warn(`[MAP] Cache parse failed for ${day.id}`, err);
       }
     }
-  }
 
-  // --- ✅ เส้นทางข้ามวันแบบ "จริง" (คำนวณเส้นทางจริง) ---
-  for (let i = 0; i < days.length - 1; i++) {
-    // ถ้ามี focusedDayIndex → ให้ข้ามทุกคู่วัน ที่ไม่เกี่ยวข้องกับวันนั้น
-    if (focusedDayIndex !== null && i !== focusedDayIndex) continue;
+    // ยิงใหม่เฉพาะเมื่อ hash เปลี่ยน
+    const originGeo = {
+      type: 'Point' as const,
+      coordinates: places[0].location!.coordinates,
+    };
+    const destGeo = {
+      type: 'Point' as const,
+      coordinates: places[places.length - 1].location!.coordinates,
+    };
+    const waypoints = places
+      .slice(1, -1)
+      .map(p => ({ type: 'Point' as const, coordinates: p.location!.coordinates }));
 
-    const currentDay = days[i];
-    const nextDay = days[i + 1];
+    console.log(`[MAP] 🛰 Fetching new route for day ${day.id}...`);
+    const result = await getDirections(originGeo, destGeo, waypoints, { force: true });
 
-    const currentPlaces = (currentDay.items || []).filter(
-      (p): p is PlaceItem =>
-        p.type === 'place' && !!p.location?.coordinates
-    );
-    const nextPlaces = (nextDay.items || []).filter(
-      (p): p is PlaceItem =>
-        p.type === 'place' && !!p.location?.coordinates
-    );
+    if (result.success && result.route?.geometry?.coordinates) {
+      drawRoutePolyline(day, result.route.geometry);
 
-    if (currentPlaces.length > 0 && nextPlaces.length > 0) {
-      const lastPlace = currentPlaces[currentPlaces.length - 1];
-      const firstNext = nextPlaces[0];
+      // 1) Cache geometry + hash
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ geometry: result.route.geometry, savedAt: Date.now() })
+      );
+      localStorage.setItem(hashKey, newHash);
 
-      // ✅ เพิ่มหมุดสีเทาเฉพาะวันถัดไปของวันที่โฟกัสเท่านั้น
-      const nextPos = {
-        lat: firstNext.location!.coordinates[1],
-        lng: firstNext.location!.coordinates[0],
-      };
-      const nextMarker = new google.maps.Marker({
-        position: nextPos,
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#cccccc',
-          fillOpacity: 0.9,
-          strokeColor: '#ffffff',
-          strokeWeight: 1,
-          scale: 9,
-        },
-        title: `[Start of Next Day] ${firstNext.name ?? ''}`,
-      });
-      markers.push(nextMarker);
-
-      // ✅ ขอเส้นทางจริงจาก backend
-      const origin = lastPlace.location!;
-      const destination = firstNext.location!;
-      const result = await getDirections(origin, destination, []);
-
-      if (result.success && result.route?.geometry?.coordinates) {
-        const path = result.route.geometry.coordinates.map(
-          (coords: [number, number]) => ({
-            lng: coords[0],
-            lat: coords[1],
-          })
-        );
-        const crossDayLine = new google.maps.Polyline({
-          path,
-          geodesic: true,
-          strokeColor: '#444444ff',
-          strokeOpacity: 0.6,
-          strokeWeight: 3,
-          map,
-        });
-        dailyRoutePolylines.push(crossDayLine);
+      // 2) ถ้ามี legs → เก็บ segments (ให้ DaySection ใช้โชว์แต่ละช่วง)
+      if (Array.isArray(result.route.segments)) {
+        const segments = result.route.segments.map((seg: any) => ({
+          distance: seg?.distance ?? 0,
+          duration: seg?.duration ?? 0,
+        }));
+        localStorage.setItem(`day-${day.id}-route-segments`, JSON.stringify(segments));
+      } else {
+        localStorage.removeItem(`day-${day.id}-route-segments`);
       }
+
+      // 3) สรุปค่ารวม: ใช้ distance/duration รวมจาก backend ถ้ามี
+      const summary = {
+        distance:
+          (typeof result.route.distance === 'number' ? result.route.distance : undefined) ??
+          (Array.isArray(result.route.legs)
+            ? result.route.legs.reduce((s: number, l: any) => s + (l?.distance?.value ?? 0), 0)
+            : 0),
+        duration:
+          (typeof result.route.duration === 'number' ? result.route.duration : undefined) ??
+          (Array.isArray(result.route.legs)
+            ? result.route.legs.reduce((s: number, l: any) => s + (l?.duration?.value ?? 0), 0)
+            : 0),
+      };
+      day.summary = summary;
+      localStorage.setItem(`day-${day.id}-summary`, JSON.stringify(summary));
+
+      // แจ้ง UI ให้รีเฟรช summary/legs
+      window.dispatchEvent(new CustomEvent('route-cache-updated', { detail: { dayId: day.id } }));
+
+      console.log(`[MAP] 💾 Cached new route for day ${day.id} (with segments/summary)`);
+    } else {
+      console.warn(`[MAP] ⚠️ Route fetch failed for day ${day.id}`, result.message);
+      // กันข้อมูลค้าง
+      localStorage.removeItem(`day-${day.id}-route-segments`);
+      localStorage.removeItem(`day-${day.id}-summary`);
     }
   }
 
@@ -350,17 +352,89 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
       if (zoom && zoom > 17) map.setZoom(17);
     });
   }
+
+  // --- Cross-day route (เฉพาะเส้นที่เกี่ยวกับวันโฟกัส) ---
+  for (let i = 0; i < days.length - 1; i++) {
+    const cur = days[i];
+    const next = days[i + 1];
+
+    // ✅ แสดงเฉพาะเส้นเทาระหว่าง "วันปัจจุบันกับวันถัดไป" เท่านั้น
+    if (focusedDayIndex !== null && i !== focusedDayIndex) continue;
+
+    const curPlaces = (cur.items || []).filter(
+      (p): p is PlaceItem => p.type === 'place' && !!p.location?.coordinates
+    );
+    const nextPlaces = (next.items || []).filter(
+      (p): p is PlaceItem => p.type === 'place' && !!p.location?.coordinates
+    );
+    if (curPlaces.length === 0 || nextPlaces.length === 0) continue;
+
+    const last = curPlaces[curPlaces.length - 1];
+    const firstNext = nextPlaces[0];
+    if (!last || !firstNext) continue;
+
+    const originGeo = { type: 'Point' as const, coordinates: last.location!.coordinates };
+    const destGeo = { type: 'Point' as const, coordinates: firstNext.location!.coordinates };
+
+    const hashKey = `cross-${cur.id}-to-${next.id}-hash`;
+    const cacheKey = `cross-${cur.id}-to-${next.id}`;
+    const newHash =
+      `${last.id || last.name}:${last.location!.coordinates.join(',')}|` +
+      `${firstNext.id || firstNext.name}:${firstNext.location!.coordinates.join(',')}`;
+
+    const oldHash = localStorage.getItem(hashKey);
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached && oldHash === newHash) {
+      try {
+        const { geometry, savedAt } = JSON.parse(cached);
+        const isExpired = Date.now() - savedAt > 1000 * 60 * 60 * 6;
+        if (!isExpired && geometry?.coordinates) {
+          console.log(`[MAP] ✅ Using cached cross-day route: ${cur.id} → ${next.id}`);
+          const path = geometry.coordinates.map(([lng, lat]: [number, number]) => ({ lng, lat }));
+          const line = new google.maps.Polyline({
+            path,
+            strokeColor: '#888',
+            strokeOpacity: 0.65,
+            strokeWeight: 3,
+            map,
+          });
+          crossDayLines.push(line);
+          continue;
+        }
+      } catch (err) {
+        console.warn(`[MAP] Cache parse failed for cross-day ${cur.id} → ${next.id}`, err);
+      }
+    }
+
+    console.log(`[MAP] 🩶 Fetching new cross-day route: ${cur.id} → ${next.id}`);
+    const cross = await getDirections(originGeo, destGeo, [], { force: true });
+    if (cross.success && cross.route?.geometry?.coordinates) {
+      const path = cross.route.geometry.coordinates.map(([lng, lat]: [number, number]) => ({ lng, lat }));
+      const line = new google.maps.Polyline({
+        path,
+        strokeColor: '#888',
+        strokeOpacity: 0.65,
+        strokeWeight: 3,
+        map,
+      });
+      crossDayLines.push(line);
+      localStorage.setItem(cacheKey, JSON.stringify({ geometry: cross.route.geometry, savedAt: Date.now() }));
+      localStorage.setItem(hashKey, newHash);
+      console.log(`[MAP] 💾 Cached new cross-day route: ${cur.id} → ${next.id}`);
+    } else {
+      console.warn(`[MAP] ⚠️ Cross-day route failed: ${cur.id} → ${next.id}`);
+    }
+  }
 }
 
-
+// --- Autocomplete ---
 export function attachAutocompleteWhenReady(
   inputEl: HTMLInputElement,
   onPlaceSelected: (placeData: any) => void
 ): void {
   if (!mapsApiReady) {
-    mapReadyPromise.then(() =>
-      attachAutocompleteWhenReady(inputEl, onPlaceSelected)
-    );
+    mapReadyPromise.then(() => attachAutocompleteWhenReady(inputEl, onPlaceSelected));
     return;
   }
   const autocomplete = new google.maps.places.Autocomplete(inputEl, {

@@ -1,11 +1,10 @@
-// src/components/Placecards.ts
+// src/components/PlaceCard.ts
 import { appState } from '../state/index.js';
 import { getTripService } from '../services/config.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';
-import type { PlaceItem } from '../types.js'; // ⬅️ แก้ไข: ลบ DayItem ที่ไม่ได้ใช้ออก
+import type { PlaceItem } from '../types.js';
 
-// บอก TypeScript ให้รู้จัก Flatpickr ที่มาจาก global scope
 declare var flatpickr: any;
 
 const debouncedSaveAndRender = debounce(async () => {
@@ -53,6 +52,7 @@ export function createPlaceCardElement(
     <div class="travel-info" id="travel-info-${dayIndex}-${itemIndex}"></div>
   `;
 
+  // ✅ ปุ่มลบแบบเดิมของคุณ
   const deleteButton = placeCard.querySelector<HTMLButtonElement>('.del-place-btn');
   if (deleteButton) {
     deleteButton.addEventListener('click', async () => {
@@ -65,42 +65,41 @@ export function createPlaceCardElement(
     });
   }
 
+  // ✅ ตั้งค่า time picker
   const timePickerOptions = {
-      enableTime: true,
-      noCalendar: true,
-      dateFormat: "H:i",
-      time_24hr: true,
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: 'H:i',
+    time_24hr: true,
   };
 
   const startTimeInput = placeCard.querySelector<HTMLInputElement>('.start-time');
   if (startTimeInput) {
-    // 🔽 แก้ไข: เพิ่ม Type และลบตัวแปรที่ไม่ได้ใช้ 🔽
     flatpickr(startTimeInput, {
-        ...timePickerOptions,
-        onChange: function(_selectedDates: Date[], dateStr: string) { // ใช้ _ เพื่อบอกว่าไม่ใช้ตัวแปรนี้
-            const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
-            if (item && item.type === 'place') {
-                item.startTime = dateStr;
-                debouncedSaveAndRender();
-            }
+      ...timePickerOptions,
+      onChange: function (_selectedDates: Date[], dateStr: string) {
+        const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
+        if (item && item.type === 'place') {
+          item.startTime = dateStr;
+          debouncedSaveAndRender();
         }
+      },
     });
   }
 
   const endTimeInput = placeCard.querySelector<HTMLInputElement>('.end-time');
   if (endTimeInput) {
-    // 🔽 แก้ไข: เพิ่ม Type และลบตัวแปรที่ไม่ได้ใช้ 🔽
     flatpickr(endTimeInput, {
-        ...timePickerOptions,
-        onChange: function(_selectedDates: Date[], dateStr: string) { // ใช้ _ เพื่อบอกว่าไม่ใช้ตัวแปรนี้
-            const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
-            if (item && item.type === 'place') {
-                item.endTime = dateStr;
-                debouncedSaveAndRender();
-            }
+      ...timePickerOptions,
+      onChange: function (_selectedDates: Date[], dateStr: string) {
+        const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
+        if (item && item.type === 'place') {
+          item.endTime = dateStr;
+          debouncedSaveAndRender();
         }
+      },
     });
   }
-  
+
   return placeCard;
 }

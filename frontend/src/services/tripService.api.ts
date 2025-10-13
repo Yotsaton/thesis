@@ -1,5 +1,6 @@
 import { appState, setTripList, setCurrentTrip } from "../state/index.js";
-import type { Trip } from "../types.js"; // ⬅️ 1. แก้ไข: import Type จากที่ใหม่
+import type { Trip } from "../types.js";
+import { summarizeDayRoute } from "../services/routeService.js"; // ✅ import เพิ่ม
 
 let saveTimeout: number;
 
@@ -12,7 +13,9 @@ function updateSaveStatus(message: string, isError: boolean = false): void {
   
   window.clearTimeout(saveTimeout);
   if (message && !message.includes("Saving")) {
-    saveTimeout = window.setTimeout(() => { if(statusEl) statusEl.textContent = ""; }, 3000);
+    saveTimeout = window.setTimeout(() => {
+      if (statusEl) statusEl.textContent = "";
+    }, 3000);
   }
 }
 
@@ -34,8 +37,8 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
       credentials: "include",
       signal: controller.signal,
       headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
     });
 
@@ -46,7 +49,10 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
     return await res.json();
   } catch (err) {
     console.error(`API request error to ${endpoint}:`, err);
-    return { success: false, message: err instanceof Error ? err.message : "Network error" };
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Network error",
+    };
   } finally {
     tripRequestInProgress = false;
   }
@@ -55,7 +61,6 @@ async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<
 export async function loadTripList(): Promise<any> {
   const data = await apiRequest("/auth/trip/", { method: "GET" });
   if (data.success && Array.isArray(data.trips)) {
-    // 🔽 2. แปลงข้อมูล _id จาก backend เป็น id ที่ frontend ใช้
     const tripsForState: Trip[] = data.trips.map((trip: any) => ({
       ...trip,
       id: trip._id ?? null,
@@ -81,37 +86,47 @@ export async function saveCurrentTrip(): Promise<any> {
     console.log("Skip saving: Trip is empty.");
     return { success: false, message: "Trip is empty" };
   }
-  
-  // 3. แปลง id กลับเป็น _id ก่อนส่งให้ backend (ถ้า backend ยังใช้ _id)
-  const { id, ...tripToSend } = currentTrip;
+
+  // ✅ คำนวณ summary สำหรับแต่ละวัน
+  for (const day of currentTrip.days) {
+    const summary = await summarizeDayRoute(day);
+    (day as any).summary = summary;
+  }
+
+  console.log("[SUMMARY] Updated trip summaries:", currentTrip.days.map(d => d.summary));
+
+  // 🚫 ไม่ส่ง summary ให้ backend
+  const sanitizedTrip = {
+    ...currentTrip,
+    days: currentTrip.days.map(d => {
+      const { summary, ...rest } = d;
+      return rest;
+    }),
+  };
+
+  const { id, ...tripToSend } = sanitizedTrip;
 
   if (currentTripId) {
-    // UPDATE
     updateSaveStatus("Saving...");
     const data = await apiRequest(`/auth/trip/${currentTripId}/full`, {
       method: "PUT",
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripToSend),
     });
     if (data.success && data.data) {
       const newTripWithId: Trip = { ...data.data, id: data.data.id ?? null };
       setCurrentTrip(newTripWithId);
-      appState.trips.push(newTripWithId);
       updateSaveStatus("All changes saved ✅");
     } else updateSaveStatus("Unable to save ❌", true);
     return data;
   } else {
-    // CREATE
     updateSaveStatus("Saving new plan...");
     const data = await apiRequest("/auth/trip/full", {
       method: "POST",
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripToSend),
     });
     if (data.success && data.data) {
       const newTripWithId: Trip = { ...data.data, id: data.data.id ?? null };
       setCurrentTrip(newTripWithId);
-      appState.trips.push(newTripWithId);
       updateSaveStatus("Plan saved ✅");
     } else {
       updateSaveStatus("Unable to save ❌", true);
@@ -121,11 +136,10 @@ export async function saveCurrentTrip(): Promise<any> {
 }
 
 export async function deleteTrip(tripId: string, updated_at: string): Promise<any> {
-  const data = await apiRequest(`/auth/trip/${tripId}`, { 
+  const data = await apiRequest(`/auth/trip/${tripId}`, {
     method: "DELETE",
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ updated_at: new Date(updated_at).toISOString() }),
-});
+  });
   if (data.success) {
     appState.trips = appState.trips.filter((t) => t.id !== tripId);
   }
