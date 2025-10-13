@@ -1,6 +1,6 @@
 // src/state/index.js
 import { getTripService } from '../services/config.js';
-import { renderMapMarkersAndRoute } from '../components/Map.js'; // ✅ เพิ่มการ import เพื่อ refresh map
+// import { renderMapMarkersAndRoute } from '../components/Map.js'; // ✅ เพิ่มการ import เพื่อ refresh map
 import type { Trip, Day, PlaceItem, AppState } from '../types.js';
 
 // --- กำหนด Type ให้กับ appState object ---

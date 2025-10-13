@@ -4,8 +4,6 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // --- Request cache / lock state ---
 const lastCalls: Record<string, number> = {};
-let lastRequestHash: string | null = null;
-let lastRequestTime = 0;
 
 /**
  * เรียก API อย่างปลอดภัย พร้อมระบบกันซ้ำ (debounce) ที่ชาญฉลาด
@@ -26,9 +24,6 @@ async function apiRequest(
     return { success: false, message: "Skipped duplicate route request" };
   }
   lastCalls[key] = now;
-
-  lastRequestHash = bodyHash;
-  lastRequestTime = now;
 
   try {
     const res = await fetch(`${API_URL}${endpoint}`, {

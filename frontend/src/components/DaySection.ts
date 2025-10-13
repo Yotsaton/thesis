@@ -11,7 +11,7 @@ import {
 import { prettyDate, escapeHtml, debounce, TRIP_COLORS } from '../helpers/utils.js';
 import { createPlaceCardElement } from './PlaceCard.js';
 import { createNoteCardElement } from './NoteCard.js';
-import type { Day, DayItem, PlaceItem, NoteItem } from '../types.js';
+import type { Day, PlaceItem, NoteItem } from '../types.js';
 
 const DAILY_TIME_LIMIT_MINUTES = 1440;
 
