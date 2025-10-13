@@ -17,8 +17,9 @@ const accessTokenTTL: SignOptions = {
 const ACCESS_COOKIE = "access_token";
 const baseCookie = {
   httpOnly: true,
-  sameSite: "none" as const, //"lax" as const,
-  secure: true
+  sameSite: "lax" as const, //"lax" as const,
+  secure: true,
+  path: "/",
   //secure: process.env.COOKIE_SECURE === "true",
   //domain: process.env.COOKIE_DOMAIN || "localhost"
 };

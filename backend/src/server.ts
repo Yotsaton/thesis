@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 
 import user from "./api/auth.api";
 import trip from "./api/trip.api";
@@ -14,10 +15,9 @@ import "./job/presence-cleaner";
 
 const app = express();
 const port = 3000;
-app.use(cors({
-  origin: ["http://127.0.0.1:5500", "http://localhost:3000", "http://localhost:5173"],
-  credentials: true,
-}));
+
+app.set('trust proxy', 1);
+app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
 

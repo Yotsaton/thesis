@@ -1,0 +1,22 @@
+node_modules
+.ipynb_checkpoints
+
+/backend/dist
+/frontend/dist
+
+.env
+
+desktop.ini
+*.log
+*.csv
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
