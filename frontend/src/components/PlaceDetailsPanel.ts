@@ -1,7 +1,7 @@
 // src/components/PlaceDetailsPanel.ts
 import { showDaySelectionPopup, handleAppRender } from '../pages/planner/index.js';
 import { addPlaceToDay } from '../state/index.js';
-import { clearTemporaryMarker } from './Map.js';
+import { clearTemporaryMarker, renderMapMarkersAndRoute } from './Map.js';
 
 export interface PlaceDetails {
   id?: string;
@@ -180,7 +180,8 @@ export function renderPlaceDetailsPanel(place: PlaceDetails, dayIndex: number | 
   addBtn.addEventListener('click', () => {
     const pid = place.place_id || place.id || '';
     if (dayIndex !== null && lat !== null && lng !== null) { 
-      addPlaceToDay(dayIndex, name, lat, lng, pid); 
+      addPlaceToDay(dayIndex, name, lat, lng, pid);
+      renderMapMarkersAndRoute();
       handleAppRender();
       hidePlaceDetailsPanel(); 
     }

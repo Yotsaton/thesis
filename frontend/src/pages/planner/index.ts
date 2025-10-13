@@ -1,9 +1,14 @@
-//src/pages/planer/index.ts
-import { appState, createNewLocalTrip, updateCurrentTripName, addPlaceToDay } from '../../state/index.js';
+// src/pages/planner/index.ts
+import {
+  appState,
+  createNewLocalTrip,
+  updateCurrentTripName,
+  addPlaceToDay
+} from '../../state/index.js';
 import { getTripService } from '../../services/config.js';
 import { renderSidebar } from '../../components/Sidebar.js';
 import { renderItinerary } from '../../components/Itinerary.js';
-import { initMap, renderMapMarkersAndRoute } from '../../components/Map.js';
+import { initMap } from '../../components/Map.js'; // ⬅️ renderMapMarkersAndRoute ถูกเรียกจาก Itinerary แล้ว
 import { initFlatpickr } from '../../helpers/flatpickr.js';
 import { prettyDate } from '../../helpers/utils.js';
 import type { Day } from '../../types.js';
@@ -17,25 +22,50 @@ function updateSaveStatus(message: string, isError: boolean = false): void {
 
   statusEl.textContent = message;
   statusEl.style.color = isError ? '#ffadad' : '#d8f1d8';
-  
+
   window.clearTimeout(statusTimeout);
   if (message) {
     statusTimeout = window.setTimeout(() => {
-      if(statusEl) statusEl.textContent = '';
+      if (statusEl) statusEl.textContent = '';
     }, 3000);
   }
 }
 
 // --- UI Rendering & Control Functions ---
 export function handleAppRender(): void {
-  renderSidebar();
-  renderItinerary(); 
-  renderMapMarkersAndRoute();
-  updateTripNameInput(appState.currentTrip.name);
+  console.log('===========================');
+  console.log('[PLANNER] handleAppRender() called');
+
+    // ✅ ฟื้นค่า focus กลับมาถ้า activeDayIndex หาย
+  if (appState.activeDayIndex === null && (appState as any).lastFocusedDayIndex != null) {
+    appState.activeDayIndex = (appState as any).lastFocusedDayIndex;
+    console.log('[PLANNER] Restored focus to day:', appState.activeDayIndex);
+  }
+
+  console.log('[PLANNER] activeDayIndex before restore:', appState.activeDayIndex);
+  console.log('[PLANNER] lastFocusedDayIndex:', (appState as any).lastFocusedDayIndex);
+
+  if (
+    (appState as any).lastFocusedDayIndex !== undefined &&
+    (appState.activeDayIndex === null || appState.activeDayIndex === undefined)
+  ) {
+    console.log('[PLANNER] Restoring last focused day:', (appState as any).lastFocusedDayIndex);
+    appState.activeDayIndex = (appState as any).lastFocusedDayIndex;
+  }
+
+  setTimeout(() => {
+    console.log('[PLANNER] Rendering Sidebar + Itinerary + Map...');
+    renderSidebar();
+    renderItinerary();
+    updateTripNameInput(appState.currentTrip.name);
+  }, 250);
 }
 
 export function handleMapRender(): void {
-  renderMapMarkersAndRoute();
+  // ✅ ใช้เฉพาะในกรณีอยาก refresh map เอง
+  import('../../components/Map.js').then(({ renderMapMarkersAndRoute }) => {
+    renderMapMarkersAndRoute();
+  });
 }
 
 export function handleSidebarRender(): void {
@@ -43,7 +73,9 @@ export function handleSidebarRender(): void {
 }
 
 export function updateTripNameInput(newName: string): void {
-  const tripNameInput = document.getElementById('trip-name-input') as HTMLInputElement | null;
+  const tripNameInput = document.getElementById(
+    'trip-name-input'
+  ) as HTMLInputElement | null;
   if (tripNameInput) {
     tripNameInput.value = newName;
   }
@@ -52,7 +84,7 @@ export function updateTripNameInput(newName: string): void {
 export function handleScrollToDay(index: number): void {
   const mainContent = document.getElementById('main-content');
   if (!mainContent) return;
-  
+
   setTimeout(() => {
     const daySection = document.getElementById(`day-section-${index}`);
     if (daySection) {
@@ -65,13 +97,18 @@ export function isTripPopulated(): boolean {
   return appState.currentTrip?.days?.length > 0;
 }
 
-export function showDaySelectionPopup(name: string, lat: number, lng: number, place_id: string = ''): void {
+export function showDaySelectionPopup(
+  name: string,
+  lat: number,
+  lng: number,
+  place_id: string = ''
+): void {
   const daySelectionPopup = document.getElementById('day-selection-popup');
   const dayList = document.getElementById('day-list-for-selection');
   const cancelBtn = document.getElementById('day-selection-cancel-btn');
 
   if (!daySelectionPopup || !dayList || !cancelBtn) return;
-  
+
   dayList.innerHTML = '';
   if (appState.currentTrip?.days) {
     appState.currentTrip.days.forEach((day: Day, index: number) => {
@@ -85,10 +122,10 @@ export function showDaySelectionPopup(name: string, lat: number, lng: number, pl
       dayList.appendChild(li);
     });
   }
-  
+
   daySelectionPopup.style.display = 'flex';
   cancelBtn.onclick = () => {
-    if (daySelectionPopup) daySelectionPopup.style.display = 'none';
+    daySelectionPopup.style.display = 'none';
   };
 }
 
@@ -105,7 +142,9 @@ async function wireEvents(): Promise<void> {
     });
   }
 
-  const tripNameInput = document.getElementById('trip-name-input') as HTMLInputElement | null;
+  const tripNameInput = document.getElementById(
+    'trip-name-input'
+  ) as HTMLInputElement | null;
   if (tripNameInput) {
     tripNameInput.addEventListener('change', async (e: Event) => {
       const target = e.target as HTMLInputElement;
@@ -127,7 +166,7 @@ async function wireEvents(): Promise<void> {
       }
     });
   }
-  
+
   const saveBtn = document.getElementById('save-plan-btn');
   if (saveBtn) {
     saveBtn.addEventListener('click', async (e: MouseEvent) => {
@@ -143,9 +182,7 @@ async function wireEvents(): Promise<void> {
     recommendBtn.addEventListener('click', (e: MouseEvent) => {
       e.preventDefault();
       const modal = document.getElementById('recommend-modal');
-      if (modal) {
-        modal.classList.add('active');
-      }
+      if (modal) modal.classList.add('active');
     });
   }
 }
