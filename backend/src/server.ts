@@ -32,7 +32,6 @@ app.use("/api/v1/auth/route", routeapi)
 app.use("/api/v1/place", processPlaces)
 app.use("/api/v1/auth/recomment", recomment)
 app.use("/api/v1/auth/activity", activity)
-// app.use("/api/places",processPlaces)
  
 app.listen(port, () => {
   console.log(`🚀 Backend server listening on http://localhost:${port}`);
