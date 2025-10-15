@@ -1,57 +1,35 @@
-//src/recommend/recommender.ts
+// src/recommend/recommender.ts
 
-// สร้าง Interface สำหรับข้อมูลสถานที่ที่ใช้ในไฟล์นี้
-export interface Place {
+export interface PlaceRecommendation {
+  id: string;
   place_id: string;
-  name_th: string;
-  province: string;
-  lat: number;
-  lng: number;
+  name: string | null;
+  address: string | null;
+  categories: string[] | null;
   rating: number | null;
   rating_count: number | null;
-  score?: number;
+  detail: string | null;
 }
 
-let PLACES: Place[] = [];
+export async function fetchRecommendationsFromAPI(
+  provinces: string[],
+  categories: string[] = ['tourist_attraction'],
+  limit: number = 5
+): Promise<PlaceRecommendation[]> {
+  try {
+    const baseUrl = window.API_BASE_URL;
+    const response = await fetch(`${baseUrl}/auth/recomment/from-province`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provinces, categories, limit: limit}),
+    });
 
-export async function loadPlacesIndex(): Promise<Place[]> {
-  if (PLACES.length) return PLACES;
-  const res = await fetch('/data/places-index.sample.json');
-  PLACES = await res.json();
-  return PLACES;
-}
+    const json = await response.json();
+    if (!json.success) throw new Error(json.error || 'API failed');
 
-// Bayesian
-const C = 20, m = 4.2;
-export function bayesianScore(r: number | null | undefined, c: number | null | undefined): number {
-  const R = r || 0;
-  const v = c || 0;
-  return (v / (v + C)) * R + (C / (v + C)) * m;
-}
-
-export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const toRad = (d: number) => d * Math.PI / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-export function topByProvinces(provinces: string[], allPlaces: Place[], limit: number = 20): Place[] {
-  const set = new Set(provinces.map(p => p.trim()));
-  return allPlaces
-    .filter(p => set.has(p.province))
-    .map(p => ({ ...p, score: bayesianScore(p.rating, p.rating_count) }))
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-    .slice(0, limit);
-}
-
-export function nearby(lat: number, lng: number, allPlaces: Place[], radiusKm: number = 50, limit: number = 5): Place[] {
-  return allPlaces
-    .filter(p => haversineKm(lat, lng, p.lat, p.lng) <= radiusKm)
-    .map(p => ({ ...p, score: bayesianScore(p.rating, p.rating_count) }))
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-    .slice(0, limit);
+    return json.data as PlaceRecommendation[];
+  } catch (err) {
+    console.error('[fetchRecommendationsFromAPI] Failed:', err);
+    throw err;
+  }
 }

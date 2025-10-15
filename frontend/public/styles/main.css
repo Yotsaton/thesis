@@ -665,210 +665,425 @@ html, body {
 
 /* Recommend Modal */
 
-/* --- โครงสร้างหลัก (คงเดิม) --- */
+/* ==============================
+   🌿 RECOMMEND MODAL (FINAL)
+   ============================== */
+
+/* --- พื้นหลัง Modal --- */
 .recommend-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+  }
+  
+  .recommend-modal.active {
+    display: flex;
+  }
+  
+  /* --- กล่องเนื้อหา Modal --- */
+  .recommend-content {
+    width: min(1030px, 95vw);
+    height: 88vh;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* --- ส่วนหัว Modal --- */
+  .recommend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    background: linear-gradient(135deg, #739371, #5c7c5b);
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  
+  #recommend-close {
+    border: none;
+    background: transparent;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+  }
+  
+  #recommend-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  #recommend-close i {
+    font-size: 22px;
+    color: #fff;
+  }
+  
+  /* --- ส่วนเนื้อหาหลัก (scroll ได้) --- */
+  .recommend-body {
+    flex: 1;  
+    padding: 18px 22px;
+    overflow-y: auto;
+    background: #fafafa;
+  } 
+  
+  /* ==============================
+     🔍 Province Search Section
+     ============================== */
+  .province-search {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 18px;
+  }
+  
+  .province-search label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  #province-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+  
+  /* --- Province Suggestion Dropdown --- */
+  .suggestions-list {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 3000; /* ✅ สำคัญสุด — ให้ลอยเหนือ recommend-content */
+  }
+  
+/* --- Input Wrapper ต้องเป็น relative --- */
+  .input-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  /* --- Suggestion Items --- */
+  .suggestion-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  
+  .suggestion-item:hover {
+    background-color: #f2f5f2;
+  }
+  
+  /* Province Chips */
+  .chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    min-height: 20px;
+  }
+  
+  .chip {
+    padding: 6px 10px;
+    background: #eef4ee;
+    border: 1px solid #cfe2cf;
+    border-radius: 999px;
+    font-size: 13px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    white-space: nowrap;
+  }
+  
+  .chip i {
+    cursor: pointer;
+  }
+  
+  /* ==============================
+     🏞️ Recommendation Cards
+     ============================== */
+  .recommend-results {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    padding: 10px;
+    justify-items: center;
+  }
+  
+  /* Card */
+  .rec-card {
+    width: 300px;
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  
+  .rec-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Thumbnail */
+  .rec-thumb {
+    width: 100%;
+    height: 180px;
+    background: #f6f6f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  .rec-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+  
+  .rec-card:hover .rec-thumb img {
+    transform: scale(1.06);
+  }
+  
+  .no-photo {
+    font-size: 28px;
+    opacity: 0.5;
+  }
+  
+  /* Info */
+  .rec-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+  
+  .rec-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: #2e2e2e;
+    margin-bottom: 6px;
+    line-height: 1.35;
+  }
+  
+  .rec-sub {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  
+  .rec-cat {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+  
+  /* Button */
+  .rec-add {
+    align-self: flex-start;
+    margin-top: auto;
+    background: #739371;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .rec-add i {
+    font-size: 16px;
+  }
+  
+  .rec-add:hover {
+    background: #5e795c;
+  }
+  
+  /* Empty / Loading State */
+  .rec-empty,
+  .rec-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #777;
+    padding: 40px 0;
+    font-size: 14px;
+  }
+
+/* ปรับ modal สำหรับคำอธิบายให้เลื่อนในกรณียาวเกินจอ */
+.desc-modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .35);
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.4);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-.recommend-modal.active {
+.desc-modal.active {
   display: flex;
 }
 
-.recommend-content {
-  width: min(1000px, 95vw);
-  max-height: 90vh;
+.desc-content {
   background: #fff;
   border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;            /* 🧩 จำกัดความสูง */
+  overflow-y: auto;            /* ✅ เพิ่ม scroll ภายใน */
+  padding: 24px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  position: relative;
+  font-family: 'Poppins', sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb #f1f1f1;
 }
 
-.recommend-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #739371;
-  color: #fff;
+/* สวยงามเวลา scroll */
+.desc-content::-webkit-scrollbar {
+  width: 6px;
+}
+.desc-content::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
 }
 
-#recommend-close {
-  /* --- 1. Resetting default button styles --- */
+.desc-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
   border: none;
-  background: transparent;
-  padding: 0;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
 
-  /* --- 2. Sizing and Shape --- */
-  width: 32px;
-  height: 32px;
-  border-radius: 50%; /* Makes the button circular */
+#desc-title {
+  margin-top: 0;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
 
-  /* --- 3. Centering the icon inside the button --- */
+#desc-text {
+  white-space: pre-line;
+  line-height: 1.6;
+  margin-top: 12px;
+  color: #444;
+}
+
+/* ปุ่ม "รายละเอียด" ให้เข้าชุดกับปุ่ม "เพิ่ม" */
+.rec-actions {
   display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rec-add,
+.rec-detail {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  /* --- 4. Cursor and Transition --- */
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
-}
-
-#recommend-close:hover {
-  /* --- 5. Hover Effect --- */
-  background-color: rgba(0, 0, 0, 0.15); /* Adds a subtle dark overlay on hover */
-}
-
-#recommend-close i {
-  /* --- 6. Icon Styling --- */
-  font-size: 24px;  /* Adjust icon size as needed */
-  color: #ffffff;   /* Ensures the icon is white */
-}
-
-.recommend-body {
-  padding: 16px 20px;
-  overflow-y: auto; /* เปลี่ยนเป็น y-axis เท่านั้น */
-}
-
-/* --- ส่วนค้นหาจังหวัด (ปรับปรุงใหม่) --- */
-.province-search {
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 15px;
-}
-
-.province-search label {
-  display: block;
-  margin-bottom: 8px;
+  gap: 4px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
-}
-
-#province-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-sizing: border-box; /* สำคัญมาก: ทำให้ padding ไม่ดันความกว้างออก */
-}
-
-/* --- (ใหม่) ส่วนแสดงคำแนะนำ (Autocomplete) --- */
-.input-wrapper {
-  position: relative;
-}
-
-.suggestions-list {
-  display: none; /* ซ่อนไว้ก่อนเป็นค่าเริ่มต้น */
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  max-height: 150px;
-  overflow-y: auto;
-  z-index: 100;
-}
-
-.suggestion-item {
-  padding: 8px 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
-}
-
-.suggestion-item:hover {
-  background-color: #f0f0f0;
-}
-
-
-/* --- ส่วนแสดงจังหวัดที่เลือก (ปรับปรุง) --- */
-.chips-container {
-  display: flex;
-  flex-wrap: wrap; /* ทำให้ขึ้นบรรทัดใหม่เมื่อเต็ม */
-  gap: 8px;
-  margin-bottom: 10px;
-  min-height: 20px;
-}
-
-.chip {
-  padding: 6px 10px;
-  background: #eef4ee;
-  border: 1px solid #cfe2cf;
-  border-radius: 999px;
-  font-size: 13px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  white-space: nowrap; /* ไม่ให้ชื่อจังหวัดขึ้นบรรทัดใหม่ */
-}
-.chip i {
-  cursor: pointer;
-}
-
-
-/* --- ส่วนแสดงผลลัพธ์ (คงเดิม) --- */
-.recommend-results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-}
-
-.rec-card {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.rec-card img {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-}
-
-.rec-info {
-  padding: 10px 12px;
-  flex: 1; /* ทำให้กล่องข้อมูลขยายเต็มพื้นที่ที่เหลือ */
-}
-
-.rec-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #333;
-}
-
-.rec-sub {
-  font-size: 13px;
-  color: #666;
-}
-
-.rec-add {
-  margin: 0 12px 12px; /* ปรับ margin เล็กน้อย */
-  padding: 8px;
   border: none;
-  border-radius: 8px;
-  background: #739371;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+/* ปุ่มหลัก (เพิ่ม) */
+.rec-add {
+  background-color: #6b8e67;
+  color: white;
 }
 .rec-add:hover {
-  background: #5f7a5d;
+  background-color: #5f7e5c;
 }
 
-.rec-empty {
-  padding: 30px;
-  text-align: center;
-  color: #777;
-  grid-column: 1 / -1; /* ทำให้ข้อความแสดงเต็มความกว้าง */
+/* ปุ่มรอง (รายละเอียด) */
+.rec-detail {
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid #ccc;
 }
+.rec-detail:hover {
+  background-color: #e2e2e2;
+  border-color: #aaa;
+}
+
+/* ให้ไอคอนดูเรียงสวย */
+.rec-add i,
+.rec-detail i {
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+  
+  /* ==============================
+     📱 Responsive
+     ============================== */
+  /* @media (max-width: 1024px) {
+    .recommend-results {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .rec-card {
+      width: 90%;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .recommend-results {
+      grid-template-columns: repeat(1, 1fr);
+    }
+    .recommend-content {
+      width: 95vw;
+      max-height: 94vh;
+    }
+    .rec-card {
+      width: 100%;
+    }
+  }
+  
+   */
