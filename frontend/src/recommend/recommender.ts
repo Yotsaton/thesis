@@ -8,6 +8,7 @@ export interface PlaceRecommendation {
   categories: string[] | null;
   rating: number | null;
   rating_count: number | null;
+  url: string | null;
   detail: string | null;
 }
 
