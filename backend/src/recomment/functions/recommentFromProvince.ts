@@ -97,6 +97,7 @@ export async function recommentFromProvince(
       category,
       rating,
       user_rating_total,
+      url,
       sumary_place
     FROM public.place
     ${whereSQL}
@@ -116,6 +117,7 @@ export async function recommentFromProvince(
     categories: Array.isArray(r.category) ? r.category : [],
     rating: r.rating ?? null,
     rating_count: r.user_rating_total ?? null,
+    url: r.url ?? null,
     detail: r.sumary_place ?? null,
   }));
 
