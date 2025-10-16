@@ -22,6 +22,8 @@ export interface users {
   last_login: Date | null;  
   token_version: number;
   last_seen : Date | null ;
+  is_deleted : boolean ;
+  deleted_at : Date | null ;
 }
 
 export interface otps {

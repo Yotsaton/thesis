@@ -10,6 +10,7 @@ import routeapi from "./api/route.api";
 import processPlaces from "./api/place.api";
 import recomment from "./api/recomment.api";
 import activity from "./api/activityLogs.api";
+import admin from "./api/admin.api";
 
 import "./job/presence-cleaner";
 
@@ -32,6 +33,7 @@ app.use("/api/v1/auth/route", routeapi)
 app.use("/api/v1/place", processPlaces)
 app.use("/api/v1/auth/recomment", recomment)
 app.use("/api/v1/auth/activity", activity)
+app.use("/api/v1/admin", admin)
  
 app.listen(port, () => {
   console.log(`🚀 Backend server listening on http://localhost:${port}`);

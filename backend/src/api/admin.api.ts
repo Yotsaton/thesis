@@ -1,34 +1,36 @@
 // src/api/admin.api.ts
 import { Router } from "express";
-import { requireAuth } from "../middleware/requireAuth";
 import { withAuth } from "../middleware/withAuth";
 import { activityLogger } from "../middleware/activityLogger";
-import { getAllUsersApi } from "../admin/getAllUsers.api";
-import { updateUserRoleApi } from "../admin/updateUserRole.api";
-import { deleteUserApi } from "../admin/deleteUser.api";
+import { getAllUsersApi, deleteUserApi, updateUserRoleApi } from "../admin/index";
+import { requireSuperUser, requireStaff } from "../middleware/requireRole";
+import requireAuth from "../middleware/requireAuth";
 
 const router = Router();
 
-// ✅ ดึงรายชื่อผู้ใช้ทั้งหมด
+// GET /api/v1/admin/users
 router.get(
   "/users",
   requireAuth,
-  activityLogger(() => ({ action: "admin_get_users" })),
+  requireStaff,
+  activityLogger(() => ({ action: "staff_get_users" })),
   withAuth(getAllUsersApi as any)
 );
 
-// ✅ แก้ไขสิทธิ์ผู้ใช้
-router.put(
+// PATCH /api/v1/admin/users/:id/role
+router.patch(
   "/users/:id/role",
   requireAuth,
+  requireSuperUser,
   activityLogger(() => ({ action: "admin_update_user_role" })),
   withAuth(updateUserRoleApi as any)
 );
 
-// ✅ ลบผู้ใช้
+// DELETE /api/v1/admin/users/:id
 router.delete(
   "/users/:id",
   requireAuth,
+  requireSuperUser,
   activityLogger(() => ({ action: "admin_delete_user" })),
   withAuth(deleteUserApi as any)
 );

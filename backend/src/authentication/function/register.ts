@@ -97,6 +97,8 @@ export const registerUser = async (req: Request, res: Response) => {
       last_login: inserted.last_login,
       token_version: inserted.token_version,
       last_seen : inserted.last_seen,
+      is_deleted : inserted.is_deleted,
+      deleted_at : inserted.deleted_at,
     };
 
     // 7) ตอบกลับ 
