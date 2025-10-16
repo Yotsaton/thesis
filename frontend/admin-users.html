@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - User Management</title>
+
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles/admin.css" />
+</head>
+<body>
+  <header class="admin-header">
+    <div class="header-left">
+      <i class="bx bx-user-circle"></i>
+      <h1>User Management</h1>
+    </div>
+    <div class="header-right">
+      <button id="refresh-btn"><i class="bx bx-refresh"></i> รีเฟรช</button>
+      <button id="logout-btn"><i class="bx bx-log-out"></i> ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="filter-section">
+      <input id="search-input" placeholder="ค้นหาชื่อผู้ใช้หรืออีเมล..." />
+      <select id="role-filter">
+        <option value="">ทุกสิทธิ์</option>
+        <option value="admin">Admin</option>
+        <option value="staff">Staff</option>
+        <option value="user">User</option>
+      </select>
+    </section>
+
+    <section class="table-section">
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>ชื่อผู้ใช้</th>
+            <th>อีเมล</th>
+            <th>สิทธิ์</th>
+            <th>วันที่สมัคร</th>
+            <th>การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="admin-footer">
+    <p>© 2025 Tiew Thai Planner | Admin User Management</p>
+  </footer>
+
+  <script type="module" src="/src/pages/admin/users.ts"></script>
+</body>
+</html>

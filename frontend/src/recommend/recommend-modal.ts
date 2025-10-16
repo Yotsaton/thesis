@@ -85,12 +85,18 @@ async function renderResults(): Promise<void> {
               <div class="rec-cat">${categories}</div>
               <div class="rec-actions">
                 <button class="rec-add" data-pid="${p.place_id}" data-name="${name}" data-addr="${province}">
-                  <i class='bx bx-plus'></i> เพิ่ม
+                  <i class='bx bx-plus'></i> Add
                 </button>
+
                 ${p.detail ? `
                 <button class="rec-detail" data-name="${name}" data-detail="${p.detail}">
-                  <i class='bx bx-info-circle'></i> รายละเอียด
+                  <i class='bx bx-info-circle'></i> Info
                 </button>` : ''}
+
+                ${p.url ? `
+                <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="rec-map">
+                  <i class='bx bx-map'></i> Map
+                </a>` : ''}
               </div>
             </div>
           </div>

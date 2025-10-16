@@ -1,0 +1,143 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f7f9f7;
+  color: #333;
+  margin: 0;
+}
+
+/* ===== Header ===== */
+.admin-header {
+  background-color: #6b8e67;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-left i {
+  font-size: 1.8rem;
+}
+
+.header-right button {
+  background-color: white;
+  color: #6b8e67;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-right button:hover {
+  background-color: #5f7e5c;
+  color: white;
+}
+
+/* ===== Main Content ===== */
+.admin-main {
+  max-width: 1100px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.filter-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filter-section input,
+.filter-section select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+}
+
+.filter-section input {
+  flex: 1;
+}
+
+.filter-section select {
+  width: 200px;
+}
+
+/* ===== Table ===== */
+.table-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #f0f5ef;
+  text-align: left;
+  font-weight: 600;
+}
+
+tr:hover {
+  background: #f8faf8;
+}
+
+/* ===== Footer ===== */
+.admin-footer {
+  text-align: center;
+  color: #666;
+  padding: 16px 0;
+  margin-top: 40px;
+  font-size: 0.85rem;
+}
+
+.btn-edit,
+.btn-delete {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+  margin: 0 4px;
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-edit {
+  background-color: #739371;
+  color: white;
+}
+.btn-edit:hover { background-color: #5f7e5c; }
+
+.btn-delete {
+  background-color: #c74a4a;
+  color: white;
+}
+.btn-delete:hover { background-color: #a33c3c; }
+
+.role-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.role-admin { background: #6b8e67; color: white; }
+.role-staff { background: #ffc107; color: #333; }
+.role-user { background: #ddd; color: #333; }
