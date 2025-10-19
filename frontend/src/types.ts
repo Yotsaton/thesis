@@ -1,3 +1,4 @@
+//src/types.ts
 export interface GeoJSONPoint {
   type: 'Point';
   coordinates: [number, number];
