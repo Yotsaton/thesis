@@ -74,3 +74,7 @@ export function forgotPassword(email: string): Promise<ApiResponse> {
 export function resetPassword(token: string, password: string): Promise<ApiResponse> {
   return apiRequest('/auth/reset-password', { token, password });
 }
+
+export function getCurrentUser(): Promise<ApiResponse<{ username: string; email: string; role: string }>> {
+  return apiRequest('/auth/me', {}, 'GET');
+}
