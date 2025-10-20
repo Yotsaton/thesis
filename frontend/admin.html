@@ -2,55 +2,88 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Activity Logs | Tiew Thai Planner</title>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
+    img-src 'self' data: https://cdn.jsdelivr.net;
+    connect-src 'self' http://localhost:3000;
+    font-src 'self' https://fonts.gstatic.com;
+">
 
-  <!-- Icons & Fonts -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | Tiew Thai Planner</title>
+
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
-
-  <!-- Styles -->
   <link rel="stylesheet" href="/styles/admin.css" />
 </head>
 <body>
   <header class="admin-header">
     <div class="header-left">
       <i class="bx bx-shield-quarter"></i>
-      <h1>Admin Dashboard</h1>
+      <h1>Tiew Thai Admin</h1>
     </div>
+    <nav class="admin-nav">
+      <button class="tab-btn active" data-tab="logs">กิจกรรมระบบ</button>
+      <button class="tab-btn" data-tab="users">จัดการผู้ใช้</button>
+    </nav>
     <div class="header-right">
-      <button id="refresh-btn"><i class="bx bx-refresh"></i> รีเฟรช</button>
       <button id="logout-btn"><i class="bx bx-log-out"></i> ออกจากระบบ</button>
     </div>
   </header>
 
   <main class="admin-main">
-    <section class="filter-section">
-      <input id="search-input" placeholder="ค้นหาชื่อผู้ใช้หรือกิจกรรม..." />
-      <select id="filter-action">
-        <option value="">ทุกการกระทำ</option>
-        <option value="login">เข้าสู่ระบบ</option>
-        <option value="logout">ออกจากระบบ</option>
-        <option value="create">เพิ่มข้อมูล</option>
-        <option value="update">แก้ไขข้อมูล</option>
-        <option value="delete">ลบข้อมูล</option>
-      </select>
+    <!-- Activity Logs -->
+    <section id="tab-logs" class="tab-content active">
+      <h2>กิจกรรมระบบ</h2>
+      <div class="filter-section">
+        <input id="search-input" placeholder="ค้นหาผู้ใช้หรือกิจกรรม..." />
+        <select id="filter-action">
+          <option value="">ทุกการกระทำ</option>
+          <option value="login">เข้าสู่ระบบ</option>
+          <option value="logout">ออกจากระบบ</option>
+          <option value="create">เพิ่มข้อมูล</option>
+          <option value="update">แก้ไขข้อมูล</option>
+          <option value="delete">ลบข้อมูล</option>
+        </select>
+      </div>
+
+      <div class="table-section">
+        <table id="logs-table">
+          <thead>
+            <tr>
+              <th>เวลา</th>
+              <th>ผู้ใช้</th>
+              <th>การกระทำ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body">
+            <tr><td colspan="4" style="text-align:center;">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="table-section">
-      <table id="logs-table">
-        <thead>
-          <tr>
-            <th>เวลา</th>
-            <th>ผู้ใช้</th>
-            <th>การกระทำ</th>
-            <th>รายละเอียด</th>
-          </tr>
-        </thead>
-        <tbody id="logs-body">
-          <tr><td colspan="4" style="text-align:center;">กำลังโหลด...</td></tr>
-        </tbody>
-      </table>
+    <!-- User Management -->
+    <section id="tab-users" class="tab-content">
+      <h2>จัดการผู้ใช้</h2>
+      <div class="table-section">
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>ชื่อผู้ใช้</th>
+              <th>อีเมล</th>
+              <th>สิทธิ์</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr><td colspan="4" style="text-align:center;">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -58,7 +91,6 @@
     <p>© 2025 Tiew Thai Planner | Admin Panel</p>
   </footer>
 
-  <!-- Scripts -->
   <script type="module" src="/src/pages/admin/admin.ts"></script>
 </body>
 </html>

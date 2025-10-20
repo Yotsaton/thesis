@@ -1,78 +1,96 @@
-// src/pages/admin/admin.ts
+// /src/pages/admin/admin.ts
+import { fetchActivityLogs, fetchAllUsers, updateUserRole, deleteUser } from '../../services/adminService.js';
 
-const API = import.meta.env.VITE_API_URL;
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
+  const contents = document.querySelectorAll<HTMLElement>('.tab-content');
 
-const adminTbody = document.getElementById("logs-body") as HTMLTableSectionElement;
-const adminSearchInput = document.getElementById("search-input") as HTMLInputElement;
-const filterAction = document.getElementById("filter-action") as HTMLSelectElement;
-const refreshBtn = document.getElementById("refresh-btn")!;
-const logoutBtn = document.getElementById("logout-btn")!;
+  if (!tabs.length || !contents.length) return; // กันหน้าอื่นเรียกไฟล์นี้
 
-async function fetchLogs(): Promise<void> {
-  try {
-    const res = await fetch(`${API}/auth/activity/logs`, { credentials: "include" });
-    if (!res.ok) throw new Error("Access denied");
-    const json = await res.json();
-    renderLogs(json.items || []);
-  } catch (err: any) {
-    adminTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">${err.message}</td></tr>`;
-  }
-}
+  tabs.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabs.forEach((b) => b.classList.remove('active'));
+      contents.forEach((c) => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
 
-function renderLogs(logs: any[]): void {
-  const search = adminSearchInput.value.toLowerCase();
-  const filter = filterAction.value;
-
-  const filtered = logs.filter((log) => {
-    const matchSearch =
-      !search ||
-      (log.username && log.username.toLowerCase().includes(search)) ||
-      (log.activity && log.activity.toLowerCase().includes(search));
-    const matchAction = !filter || log.activity?.toLowerCase().includes(filter);
-    return matchSearch && matchAction;
+      if (btn.dataset.tab === 'logs') loadLogs();
+      if (btn.dataset.tab === 'users') loadUsers();
+    });
   });
 
-  if (filtered.length === 0) {
-    adminTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">ไม่พบข้อมูล</td></tr>`;
-    return;
-  }
+  // เลือกแท็บเริ่มต้น
+  const initial = document.querySelector<HTMLButtonElement>('.tab-btn[data-tab="logs"]');
+  if (initial) initial.click();
 
-  adminTbody.innerHTML = filtered
-    .map(
-      (l) => `
-      <tr>
-        <td>${new Date(l.created_at).toLocaleString("th-TH")}</td>
-        <td>${l.username || "—"}</td>
-        <td>${l.activity || "—"}</td>
-        <td>${l.detail || "-"}</td>
-      </tr>
-    `
-    )
-    .join("");
-}
-
-refreshBtn.addEventListener("click", fetchLogs);
-adminSearchInput.addEventListener("input", fetchLogs);
-filterAction.addEventListener("change", fetchLogs);
-
-logoutBtn.addEventListener("click", async () => {
-  await fetch(`${window.API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
-  window.location.href = "/login.html";
-});
-
-// ตรวจสิทธิ์ admin ก่อนเข้า
-(async () => {
-  try {
-    const res = await fetch(`${API}/auth/me`, { method: "GET", credentials: "include" });
-    if (!res.ok) throw new Error("Unauthorized");
-    const user = await res.json();
-    if ((user.user.is_super_user || user.user.is_staff_user) !== true) {
-      alert("คุณไม่มีสิทธิ์เข้าหน้านี้");
-      window.location.href = "/my-plans.html";
-      return;
+  async function loadLogs() {
+    const body = document.getElementById('logs-body')!;
+    body.innerHTML = `<tr><td colspan="4" style="text-align:center;">กำลังโหลด...</td></tr>`;
+    try {
+      const data = await fetchActivityLogs();
+      body.innerHTML = data.length
+        ? data.map((log: any) => `
+          <tr>
+            <td>${new Date(log.created_at).toLocaleString('th-TH')}</td>
+            <td>${log.user}</td>
+            <td>${log.action}</td>
+            <td>${log.detail || '-'}</td>
+          </tr>
+        `).join('')
+        : `<tr><td colspan="4" style="text-align:center;">ไม่พบข้อมูล</td></tr>`;
+    } catch (e: any) {
+      body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#b33;">โหลด Log ไม่สำเร็จ</td></tr>`;
+      if (e?.status === 401) window.location.href = '/login.html';
     }
-    fetchLogs();
-  } catch {
-    window.location.href = "/login.html";
   }
-})();
+
+  async function loadUsers() {
+    const body = document.getElementById('users-body')!;
+    body.innerHTML = `<tr><td colspan="4" style="text-align:center;">กำลังโหลด...</td></tr>`;
+    try {
+      const users = await fetchAllUsers();
+      body.innerHTML = users.length
+        ? users.map((u: any) => `
+          <tr>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td>
+              <select class="role-select" data-id="${u.id}">
+                <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>User</option>
+                <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>Staff</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-delete" data-id="${u.id}"><i class="bx bx-trash"></i> ลบ</button>
+            </td>
+          </tr>
+        `).join('')
+        : `<tr><td colspan="4" style="text-align:center;">ไม่พบผู้ใช้</td></tr>`;
+
+      // update role
+      document.querySelectorAll<HTMLSelectElement>('.role-select').forEach((sel) => {
+        sel.addEventListener('change', async () => {
+          const id = sel.dataset.id!;
+          const role = sel.value;
+          const res = await updateUserRole(id, role);
+          alert(res.success ? 'อัปเดตสิทธิ์เรียบร้อย' : (res.message || 'ไม่สามารถอัปเดตได้'));
+          loadUsers();
+        });
+      });
+      // delete user
+      document.querySelectorAll<HTMLButtonElement>('.btn-delete').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('คุณแน่ใจหรือไม่ที่จะลบผู้ใช้นี้?')) return;
+          const id = btn.dataset.id!;
+          const res = await deleteUser(id);
+          alert(res.success ? 'ลบผู้ใช้สำเร็จ' : (res.message || 'ไม่สามารถลบได้'));
+          loadUsers();
+        });
+      });
+    } catch (e: any) {
+      body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#b33;">โหลด Users ไม่สำเร็จ</td></tr>`;
+      if (e?.status === 401) window.location.href = '/login.html';
+    }
+  }
+});

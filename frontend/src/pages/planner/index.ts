@@ -8,10 +8,13 @@ import {
 import { getTripService } from '../../services/config.js';
 import { renderSidebar } from '../../components/Sidebar.js';
 import { renderItinerary } from '../../components/Itinerary.js';
-import { initMap } from '../../components/Map.js'; // ⬅️ renderMapMarkersAndRoute ถูกเรียกจาก Itinerary แล้ว
+import { initMap } from '../../components/Map.js';
 import { initFlatpickr } from '../../helpers/flatpickr.js';
 import { prettyDate } from '../../helpers/utils.js';
 import type { Day } from '../../types.js';
+
+// ✅ เพิ่ม import ใหม่ (อย่าลบของเดิม)
+import { getCurrentUser } from '../../auth/authService.js';
 
 // --- Save Status Functionality ---
 let statusTimeout: number;
@@ -36,7 +39,7 @@ export function handleAppRender(): void {
   console.log('===========================');
   console.log('[PLANNER] handleAppRender() called');
 
-    // ✅ ฟื้นค่า focus กลับมาถ้า activeDayIndex หาย
+  // ✅ ฟื้นค่า focus กลับมาถ้า activeDayIndex หาย
   if (appState.activeDayIndex === null && (appState as any).lastFocusedDayIndex != null) {
     appState.activeDayIndex = (appState as any).lastFocusedDayIndex;
     console.log('[PLANNER] Restored focus to day:', appState.activeDayIndex);
@@ -62,7 +65,6 @@ export function handleAppRender(): void {
 }
 
 export function handleMapRender(): void {
-  // ✅ ใช้เฉพาะในกรณีอยาก refresh map เอง
   import('../../components/Map.js').then(({ renderMapMarkersAndRoute }) => {
     renderMapMarkersAndRoute();
   });
@@ -73,9 +75,7 @@ export function handleSidebarRender(): void {
 }
 
 export function updateTripNameInput(newName: string): void {
-  const tripNameInput = document.getElementById(
-    'trip-name-input'
-  ) as HTMLInputElement | null;
+  const tripNameInput = document.getElementById('trip-name-input') as HTMLInputElement | null;
   if (tripNameInput) {
     tripNameInput.value = newName;
   }
@@ -142,9 +142,7 @@ async function wireEvents(): Promise<void> {
     });
   }
 
-  const tripNameInput = document.getElementById(
-    'trip-name-input'
-  ) as HTMLInputElement | null;
+  const tripNameInput = document.getElementById('trip-name-input') as HTMLInputElement | null;
   if (tripNameInput) {
     tripNameInput.addEventListener('change', async (e: Event) => {
       const target = e.target as HTMLInputElement;
@@ -187,6 +185,26 @@ async function wireEvents(): Promise<void> {
   }
 }
 
+// ✅ ฟังก์ชันใหม่: อัปเดตชื่อผู้ใช้จริง
+async function updateLoggedInUserName(): Promise<void> {
+  const usernameEl = document.querySelector('.username strong');
+  if (!usernameEl) return;
+
+  try {
+    const res = await getCurrentUser();
+    if (res.success && res.data?.username) {
+      usernameEl.textContent = res.data.username;
+    } else if (res.success && res.data?.email) {
+      usernameEl.textContent = res.data.email;
+    } else {
+      usernameEl.textContent = 'Guest';
+    }
+  } catch (err) {
+    console.error('[PLANNER] Failed to load current user:', err);
+    usernameEl.textContent = 'Guest';
+  }
+}
+
 async function initializeApp(): Promise<void> {
   await wireEvents();
   await initMap();
@@ -201,6 +219,9 @@ async function initializeApp(): Promise<void> {
 
   initFlatpickr();
   handleAppRender();
+
+  // ✅ เรียกหลังจาก DOM พร้อมแล้ว
+  await updateLoggedInUserName();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

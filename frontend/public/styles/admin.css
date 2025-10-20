@@ -141,3 +141,33 @@ tr:hover {
 .role-admin { background: #6b8e67; color: white; }
 .role-staff { background: #ffc107; color: #333; }
 .role-user { background: #ddd; color: #333; }
+
+.admin-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.tab-btn {
+  background: white;
+  color: #6b8e67;
+  border: 1px solid #6b8e67;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active,
+.tab-btn:hover {
+  background: #6b8e67;
+  color: white;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
