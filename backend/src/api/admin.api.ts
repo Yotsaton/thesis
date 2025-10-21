@@ -17,18 +17,18 @@ router.get(
   withAuth(getAllUsersApi as any)
 );
 
-// PATCH /api/v1/admin/users/:id/role
+// PATCH /api/v1/admin/users/:username/role
 router.patch(
-  "/users/:id/role",
+  "/users/:username/role",
   requireAuth,
   requireSuperUser,
   activityLogger(() => ({ action: "admin_update_user_role" })),
   withAuth(updateUserRoleApi as any)
 );
 
-// DELETE /api/v1/admin/users/:id
+// DELETE /api/v1/admin/users/:username
 router.delete(
-  "/users/:id",
+  "/users/:username",
   requireAuth,
   requireSuperUser,
   activityLogger(() => ({ action: "admin_delete_user" })),
