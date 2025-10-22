@@ -3,20 +3,6 @@ import { CONFIG } from './config.js';
 
 const BASE = CONFIG.API_BASE_URL;
 
-// ----------- bodyFetchLogs schemas from backend -----------
-// Schema for fetching activity logs
-// ทำมาด้วยถ้าอยากให้ช่อง search มันใช้ได้ 
-const fetchActivityLogsSchema = z.object({
-  username: z.string().min(1).optional(),
-  ip: z.string().min(1).optional(),
-  q: z.string().min(1).optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-  cursor: z.coerce.number().int().optional(),
-  asc: z.coerce.number().int().optional(), // 1 = ASC, 0/omit = DESC
-});
-// ถ้า backend map: app.use("/api/v1/auth/activity", activityRouter)
 export async function fetchActivityLogs() {
   const res = await fetch(`${BASE}/auth/activity/logs`, {
     method: 'GET',

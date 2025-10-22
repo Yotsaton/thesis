@@ -1,4 +1,5 @@
 // src/pages/planner/index.ts
+import '../../auth/guard.js';
 import {
   appState,
   createNewLocalTrip,
@@ -192,10 +193,14 @@ async function updateLoggedInUserName(): Promise<void> {
 
   try {
     const res = await getCurrentUser();
-    if (res.success && res.data?.username) {
-      usernameEl.textContent = res.data.username;
-    } else if (res.success && res.data?.email) {
-      usernameEl.textContent = res.data.email;
+
+    // ✅ รองรับรูปแบบที่ /auth/me ส่งกลับมา
+    const user = res.user || res.data || {};
+
+    if (res.success && user.username) {
+      usernameEl.textContent = user.username;
+    } else if (res.success && user.email) {
+      usernameEl.textContent = user.email;
     } else {
       usernameEl.textContent = 'Guest';
     }
@@ -204,6 +209,7 @@ async function updateLoggedInUserName(): Promise<void> {
     usernameEl.textContent = 'Guest';
   }
 }
+
 
 async function initializeApp(): Promise<void> {
   await wireEvents();
@@ -219,10 +225,10 @@ async function initializeApp(): Promise<void> {
 
   initFlatpickr();
   handleAppRender();
-
-  // ✅ เรียกหลังจาก DOM พร้อมแล้ว
   await updateLoggedInUserName();
+  setTimeout(updateLoggedInUserName, 300);
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();

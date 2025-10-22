@@ -129,32 +129,37 @@ export function initializeAuthUI(): void {
     });
 
     loginForm?.addEventListener('submit', async (e: Event) => {
-        e.preventDefault();
+      e.preventDefault();
 
-        // 🔽 1. ค้นหาปุ่ม submit ที่อยู่ในฟอร์มนี้ 🔽
-        const submitButton = loginForm.querySelector<HTMLButtonElement>('button[type="submit"]');
-        if (submitButton) {
-            // 🔽 2. ให้ Feedback ทันทีที่กดปุ่ม 🔽
-            submitButton.disabled = true;
-            submitButton.textContent = 'Logging In...';
-        }
+      const submitButton = loginForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Logging In...';
+      }
 
-        const formData = new FormData(loginForm);
-        const identifier = String(formData.get('email'));
-        const password = String(formData.get('password'));
-        const data = await login(identifier, password);
+      const formData = new FormData(loginForm);
+      const identifier = String(formData.get('email'));
+      const password = String(formData.get('password'));
+      const data = await login(identifier, password);
 
-        if (data?.success) {
+      if (data?.success) {
+        const user = data.user || data.data || data; // รองรับหลายโครงสร้าง
+
+        setTimeout(() => {
+          if (user.is_super_user || user.is_staff_user) {
+            window.location.href = '/admin.html';
+          } else {
             window.location.href = '/my-plans.html';
-        } else { 
-            alert(data?.message || 'An error occurred during login.'); 
-            
-            // 🔽 3. คืนสถานะปุ่มกลับมาเหมือนเดิมหากเกิด Error 🔽
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Login';
-            }
+          }
+        }, 300);
+      } else {
+        alert(data?.message || 'An error occurred during login.');
+
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Login';
         }
+      }
     });
 
     registerForm?.addEventListener('submit', async (e: Event) => {

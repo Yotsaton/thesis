@@ -1,14 +1,39 @@
 // src/auth/guard.ts
-import { CONFIG } from '../services/config.js';
+import { getCurrentUser } from './authService.js';
 
-// ตั้งค่านี้เป็น true หากต้องการบังคับให้ login ก่อนเข้าหน้าอื่น
-if (CONFIG.REQUIRE_AUTH) {
-  const token = localStorage.getItem('authToken');
-  // ตรวจสอบว่าหน้าปัจจุบันไม่ใช่หน้า main.html หรือ reset-password.html
-  const isAuthPage = window.location.pathname.endsWith('/main.html') || window.location.pathname.endsWith('/reset-password.html');
-  
-  if (!token && !isAuthPage) {
-    // ใช้ Path ที่ถูกต้องสำหรับ Vite
-    window.location.href = '/main.html'; 
+// ✅ รายชื่อหน้าที่ไม่ต้องตรวจ login
+const PUBLIC_PAGES = ['/main.html', '/reset-password.html', '/index.html'];
+
+(async () => {
+  const currentPath = window.location.pathname;
+
+  // ถ้าเป็นหน้าสาธารณะ → ไม่ต้องเช็ค
+  if (PUBLIC_PAGES.includes(currentPath)) return;
+
+  try {
+    const res = await getCurrentUser();
+    const user = res.user || res.data || res;
+
+    // ❌ ถ้ายังไม่ได้ login → กลับหน้า login
+    if (!res.success || !user.username) {
+      window.location.href = '/main.html';
+      return;
+    }
+
+    // 🔒 ถ้าเป็น admin/staff → redirect ไปหน้า admin.html ถ้าอยู่ที่หน้า user
+    if ((user.is_super_user || user.is_staff_user) && currentPath !== '/admin.html') {
+      window.location.href = '/admin.html';
+      return;
+    }
+
+    // 🔒 ถ้าเป็น user ปกติ แต่เข้า admin → กลับ my-plans
+    if (!(user.is_super_user || user.is_staff_user) && currentPath === '/admin.html') {
+      window.location.href = '/my-plans.html';
+      return;
+    }
+
+  } catch (err) {
+    console.error('[GUARD] Failed to verify user:', err);
+    window.location.href = '/main.html';
   }
-}
+})();

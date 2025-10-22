@@ -1,7 +1,7 @@
-//src/pages/main/index.ts
+// src/pages/main/index.ts
 import { initializeAuthUI } from '../../auth/auth.js';
 
-// Wait for the DOM to be fully loaded before initializing the UI
+// ให้ initializeAuthUI() จัดการทุกอย่างของ Login/Register/Redirect
 document.addEventListener('DOMContentLoaded', () => {
   initializeAuthUI();
 });

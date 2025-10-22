@@ -1,5 +1,5 @@
 // src/recommend/recommend-modal.ts
-import { fetchRecommendationsFromAPI, type PlaceRecommendation } from './recommender.js';
+import { fetchRecommendationsFromAPI } from './recommender.js';
 import { showDaySelectionPopup } from '../pages/planner/index.js';
 
 const modal = document.getElementById('recommend-modal');
@@ -116,7 +116,6 @@ async function renderResults(): Promise<void> {
       btn.onclick = () => {
         const pid = btn.dataset.pid!;
         const name = btn.dataset.name!;
-        const province = btn.dataset.addr!;
         showDaySelectionPopup(name, 0, 0, pid);
         if (modal) modal.classList.remove('active');
       };
