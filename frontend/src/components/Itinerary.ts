@@ -1,8 +1,6 @@
-// src/components/Itinerary.ts
-import { appState } from '../state/index.js';
-import { getTripService } from '../services/config.js';
+import { appState, triggerAutoSave } from '../state/index.js';
 import { handleAppRender } from '../pages/planner/index.js';
-import { createDaySectionElement, renderDaySummaryAndValidation } from './DaySection.js'; // ⬅️ นำเข้า summary
+import { createDaySectionElement, renderDaySummaryAndValidation } from './DaySection.js';
 import { renderMapMarkersAndRoute } from './Map.js';
 import { debounce } from '../helpers/utils.js';
 import type { Day } from '../types.js';
@@ -55,6 +53,7 @@ function initializeSortable(): void {
         const newDayIndex = parseInt(newDayEl?.dataset.dayIdx || '-1');
         const oldIndex = evt.oldIndex;
         const newIndex = evt.newIndex;
+
         if (oldDayIndex < 0 || newDayIndex < 0 || oldIndex === undefined || newIndex === undefined)
           return;
 
@@ -67,31 +66,26 @@ function initializeSortable(): void {
         console.log('[SORT] Drag-drop completed:', { oldDayIndex, newDayIndex, oldIndex, newIndex });
         console.log('[SORT] Before save:', structuredClone(appState.currentTrip.days));
 
-        try {
-          const tripService = await getTripService();
-          await tripService.saveCurrentTrip();
-        } catch (err) {
-          console.warn('Trip save failed after drag-drop:', err);
-        }
+        // ✅ ใช้ระบบ autosave กลางแทน tripService.saveCurrentTrip()
+        triggerAutoSave(600);
 
         // จำวันโฟกัส
         if (typeof appState.activeDayIndex === 'number') {
           (appState as any).lastFocusedDayIndex = appState.activeDayIndex;
         }
 
-        console.log('[SORT] After save. ActiveDayIndex:', appState.activeDayIndex);
+        console.log('[SORT] After autosave trigger. ActiveDayIndex:', appState.activeDayIndex);
         console.log('[SORT] LastFocusedDayIndex:', (appState as any).lastFocusedDayIndex);
 
-        // รอ state sync แล้วค่อย render + สรุปใหม่
-          setTimeout(() => {
-            // ✅ จดจำวันโฟกัสไว้ก่อน re-render
-            (appState as any).lastFocusedDayIndex = newDayIndex;
-            appState.activeDayIndex = newDayIndex;
+        // รอให้ state sync แล้วค่อย render + สรุปใหม่
+        setTimeout(() => {
+          (appState as any).lastFocusedDayIndex = newDayIndex;
+          appState.activeDayIndex = newDayIndex;
 
-            console.log('[SORT] Trigger handleAppRender()...');
-            handleAppRender();
+          console.log('[SORT] Trigger handleAppRender()...');
+          handleAppRender();
 
-          // 🔁 re-calc summary เฉพาะวันที่ได้รับผลกระทบ (กันเคสเขียน localStorage ช้า)
+          // 🔁 re-calc summary เฉพาะวันที่ได้รับผลกระทบ
           setTimeout(() => {
             const dayA: Day | undefined = appState.currentTrip?.days?.[oldDayIndex];
             const dayB: Day | undefined = appState.currentTrip?.days?.[newDayIndex];

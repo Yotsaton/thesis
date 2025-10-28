@@ -1,9 +1,7 @@
-// src/state/index.js
 import { getTripService } from '../services/config.js';
-// import { renderMapMarkersAndRoute } from '../components/Map.js'; // ✅ เพิ่มการ import เพื่อ refresh map
 import type { Trip, Day, PlaceItem, AppState } from '../types.js';
 
-// --- กำหนด Type ให้กับ appState object ---
+// --- Global App State ---
 export const appState: AppState = {
   trips: [],
   currentTripId: null,
@@ -15,24 +13,55 @@ export const appState: AppState = {
   activeDayIndex: null,
 };
 
-// --- Helper Function ---
-async function saveCurrentTrip(): Promise<void> {
+// --- Internal Save Function (Direct API call, no debounce) ---
+let saveInProgress = false;
+let pendingSave = false;
+
+async function saveCurrentTripDirect(): Promise<void> {
+  if (saveInProgress) {
+    console.log('[STATE] Save already in progress → queued for retry');
+    pendingSave = true;
+    return;
+  }
+
   try {
+    saveInProgress = true;
     const tripService = await getTripService();
+    console.log('[STATE] Triggering saveCurrentTripDirect()');
     await tripService.saveCurrentTrip();
   } catch (error) {
-    console.error('Failed to save trip:', error);
+    console.error('[STATE] Failed to save trip:', error);
+  } finally {
+    saveInProgress = false;
+
+    // ✅ ถ้ามี save ที่รอไว้จากการซ้ำ ให้ retry หลังจาก delay สั้น ๆ
+    if (pendingSave) {
+      pendingSave = false;
+      console.log('[STATE] Retrying queued save...');
+      setTimeout(() => saveCurrentTripDirect(), 400);
+    }
   }
 }
 
-// --- การจัดการ State หลัก ---
+// --- 🧠 Global Debounce Auto-Save System ---
+let autosaveTimer: number | null = null;
+export function triggerAutoSave(delay: number = 1200): void {
+  if (autosaveTimer) window.clearTimeout(autosaveTimer);
+  autosaveTimer = window.setTimeout(async () => {
+    console.log('[AUTO-SAVE] Triggered at', new Date().toLocaleTimeString());
+    await saveCurrentTripDirect();
+  }, delay);
+}
+
+// --- State Management Functions ---
 export function setTripList(trips: Trip[]): void {
   appState.trips = trips;
 }
 
 export function setCurrentTrip(tripData: Trip): void {
   appState.currentTripId = tripData.id || null;
-  appState.currentTrip = tripData;
+  // ✅ merge เพื่อป้องกัน overwriting state ขณะ save
+  appState.currentTrip = { ...appState.currentTrip, ...tripData };
   appState.activeDayIndex = null;
 }
 
@@ -45,6 +74,7 @@ export function createNewLocalTrip(): void {
 export function updateCurrentTripName(newName: string): void {
   if (appState.currentTrip) {
     appState.currentTrip.name = newName;
+    triggerAutoSave(1000); // 🔁 บันทึกอัตโนมัติเมื่อแก้ชื่อแผน
   }
 }
 
@@ -57,11 +87,10 @@ export function updateTripDays(newDays: Day[]): void {
   if (appState.currentTrip) {
     appState.currentTrip.days = newDays;
   }
-  // setActiveDayIndex(null);
-  saveCurrentTrip();
+  triggerAutoSave(1200); // 🔁 autosave ทุกครั้งที่วันเปลี่ยน
 }
 
-// --- ✅ เพิ่มสถานที่ในแต่ละวัน พร้อม refresh map ---
+// --- ✅ เพิ่มสถานที่ในแต่ละวัน พร้อม autosave ---
 export async function addPlaceToDay(
   dayIndex: number,
   name: string,
@@ -75,9 +104,7 @@ export async function addPlaceToDay(
   const day: Day = trip.days[dayIndex];
 
   // ตรวจสอบและสร้าง array items ถ้ายังไม่มี
-  if (!day.items) {
-    day.items = [];
-  }
+  if (!day.items) day.items = [];
 
   // ✅ ใช้ Type ที่ถูกต้องจาก PlaceItem
   const newPlace: PlaceItem = {
@@ -97,9 +124,9 @@ export async function addPlaceToDay(
   appState.activeDayIndex = dayIndex;
 
   try {
-    await saveCurrentTrip();
+    triggerAutoSave(800); // 🔁 autosave หลังเพิ่มสถานที่
   } catch (err) {
-    console.warn('Trip save failed temporarily:', err);
+    console.warn('[STATE] Trip save failed temporarily:', err);
   }
 
   // ✅ Restore focus หลัง save (ป้องกัน overview mode)

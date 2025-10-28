@@ -1,20 +1,15 @@
-// src/components/PlaceCard.ts
-import { appState } from '../state/index.js';
-import { getTripService } from '../services/config.js';
+import { appState, triggerAutoSave } from '../state/index.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';
+import { getPlaceNumbering } from '../helpers/placeNumbering.js';
 import type { PlaceItem } from '../types.js';
 
 declare var flatpickr: any;
 
-const debouncedSaveAndRender = debounce(async () => {
-  try {
-    const tripService = await getTripService();
-    await tripService.saveCurrentTrip();
-    handleAppRender();
-  } catch (error) {
-    console.error("Failed to save and render after debounce:", error);
-  }
+// ✅ ใช้ autosave system แทน tripService
+const debouncedAutoSaveAndRender = debounce(() => {
+  triggerAutoSave(600);
+  handleAppRender();
 }, 800);
 
 export function createPlaceCardElement(
@@ -25,9 +20,15 @@ export function createPlaceCardElement(
   isFirst: boolean,
   isLast: boolean
 ): HTMLDivElement {
+  const numberingMap = getPlaceNumbering();
+  const placeKey = `${dayIndex}-${itemIndex}`;
+  const placeInfo = numberingMap[placeKey];
+  const displayNumber = placeInfo?.number ?? null;
+  const numberColor = placeInfo?.color ?? dayColor ?? '#4a6cf7';
+
   const placeCard = document.createElement('div');
   placeCard.className = 'place-box';
-  placeCard.style.borderLeft = `5px solid ${dayColor || '#ccc'}`;
+  placeCard.style.borderLeft = `5px solid ${numberColor}`;
 
   let positionLabel = '';
   if (isFirst) {
@@ -36,12 +37,21 @@ export function createPlaceCardElement(
     positionLabel = `<span class="position-label end-label"><i class='bx bxs-flag-checkered'></i> End Point</span>`;
   }
 
+  const numberBadge = displayNumber
+    ? `<span class="place-number" style="background:${numberColor}">${displayNumber}</span>`
+    : '';
+
   placeCard.innerHTML = `
     <div class="place-card-content">
       <div class="place-header">
-        <strong class="kv">${escapeHtml(place.name)}</strong>
-        ${positionLabel}
-        <button class="del-place-btn" title="Delete Item"><i class='bx bx-x'></i></button>
+        <div class="left-group">
+          ${numberBadge}
+          <strong class="kv">${escapeHtml(place.name)}</strong>
+        </div>
+        <div class="right-group">
+          ${positionLabel}
+          <button class="del-place-btn" title="Delete Item"><i class='bx bx-x'></i></button>
+        </div>
       </div>
       <div class="place-times">
         <input type="text" class="start-time flatpickr-time-input" placeholder="--:--" value="${place.startTime || ''}" />
@@ -52,14 +62,13 @@ export function createPlaceCardElement(
     <div class="travel-info" id="travel-info-${dayIndex}-${itemIndex}"></div>
   `;
 
-  // ✅ ปุ่มลบแบบเดิมของคุณ
+  // ✅ ปุ่มลบ
   const deleteButton = placeCard.querySelector<HTMLButtonElement>('.del-place-btn');
   if (deleteButton) {
-    deleteButton.addEventListener('click', async () => {
+    deleteButton.addEventListener('click', () => {
       if (appState.currentTrip?.days?.[dayIndex]?.items) {
         appState.currentTrip.days[dayIndex].items.splice(itemIndex, 1);
-        const tripService = await getTripService();
-        await tripService.saveCurrentTrip();
+        triggerAutoSave(800);
         handleAppRender();
       }
     });
@@ -81,7 +90,7 @@ export function createPlaceCardElement(
         const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
         if (item && item.type === 'place') {
           item.startTime = dateStr;
-          debouncedSaveAndRender();
+          debouncedAutoSaveAndRender();
         }
       },
     });
@@ -95,7 +104,7 @@ export function createPlaceCardElement(
         const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
         if (item && item.type === 'place') {
           item.endTime = dateStr;
-          debouncedSaveAndRender();
+          debouncedAutoSaveAndRender();
         }
       },
     });

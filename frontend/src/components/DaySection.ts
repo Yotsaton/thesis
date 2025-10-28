@@ -1,6 +1,4 @@
-// src/components/DaySection.ts
-import { appState } from '../state/index.js';
-import { getTripService } from '../services/config.js';
+import { appState, triggerAutoSave } from '../state/index.js';
 import { optimizeDayRoute } from '../services/routeService.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import {
@@ -33,7 +31,7 @@ function assignDayColor(day: Day, index: number): void {
   day.color = TRIP_COLORS[index % TRIP_COLORS.length];
 }
 
-// ⬇⬇⬇  Export ออกไปให้ Itinerary เรียกได้ด้วย
+// ✅ รวมคำนวณเวลา + validation
 export async function renderDaySummaryAndValidation(day: Day, dayIndex: number): Promise<void> {
   const places = day.items.filter((i): i is PlaceItem => i.type === 'place');
   let totalTravelSeconds = 0;
@@ -150,19 +148,16 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
   const itemsContainer = daySection.querySelector<HTMLElement>('.day-items');
   if (itemsContainer) renderItems(day, dayIndex, itemsContainer);
 
-  // เรียกรอบแรกทันที
   renderDaySummaryAndValidation(day, dayIndex);
-
-  // 🔁 กันกรณี localStorage เพิ่งถูกเขียนเสร็จช้ากว่า UI
   setTimeout(() => {
     renderDaySummaryAndValidation(day, dayIndex);
     console.log(`[RENDER] Rechecked summary for day ${day.id} (index ${dayIndex})`);
   }, 800);
 
-  const debouncedSave = debounce(async () => {
-    const tripService = await getTripService();
-    await tripService.saveCurrentTrip();
-  }, 500);
+  // ✅ Debounced autosave (แทน tripService.saveCurrentTrip)
+  const debouncedAutoSave = debounce(() => {
+    triggerAutoSave(800);
+  }, 600);
 
   const subheadingInput = daySection.querySelector<HTMLInputElement>('.subheading');
   if (subheadingInput) {
@@ -170,7 +165,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
       const val = (e.target as HTMLInputElement).value;
       if (appState.currentTrip?.days[dayIndex]) {
         appState.currentTrip.days[dayIndex].subheading = val;
-        debouncedSave();
+        debouncedAutoSave();
       }
     });
   }
@@ -185,14 +180,13 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
 
   const addNoteButton = daySection.querySelector<HTMLButtonElement>('.add-note-btn');
   if (addNoteButton) {
-    addNoteButton.addEventListener('click', async () => {
+    addNoteButton.addEventListener('click', () => {
       const newNote: NoteItem = { type: 'note', id: 'n' + Date.now(), text: '' };
       const dayObj = appState.currentTrip?.days[dayIndex];
       if (dayObj) {
         dayObj.items = dayObj.items || [];
         dayObj.items.push(newNote);
-        const tripService = await getTripService();
-        await tripService.saveCurrentTrip();
+        triggerAutoSave(800);
         handleAppRender();
       }
     });
@@ -225,6 +219,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
               return aIdx - bIdx;
             });
 
+          triggerAutoSave(1200);
           handleAppRender();
           drawRoutePolyline(day, result.route.geometry);
         } else {
@@ -247,10 +242,7 @@ export function createDaySectionElement(day: Day, dayIndex: number): HTMLDivElem
 
   window.addEventListener('route-cache-updated', (e: Event) => {
     const detail = (e as CustomEvent).detail;
-    if (!detail?.dayId) return;
-
-    // ✅ ให้ refresh เฉพาะวันเดียวกันเท่านั้น
-    if (detail.dayId === day.id) {
+    if (detail?.dayId === day.id) {
       console.log(`[EVENT] route-cache-updated for day ${day.id} → re-render summary`);
       debouncedRecalc();
     }

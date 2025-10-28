@@ -18,18 +18,6 @@ export async function getTripService(): Promise<TripServiceInterface> {
     return serviceModule;
   }
 
-
-  
-  // if (CONFIG.OFFLINE_MODE) {
-  //   // 🔽 แก้ไข Path ให้นามสกุลเป็น .js 🔽
-  //   const module = await import("./tripService.local.js");
-  //   serviceModule = module as unknown as TripServiceInterface;
-  // } else {
-  //   // 🔽 แก้ไข Path ให้นามสกุลเป็น .js 🔽
-  //   const module = await import("./tripService.api.js");
-  //   serviceModule = module as unknown as TripServiceInterface;
-  // }
-
   const module = await import("./tripService.api.js");
   serviceModule = module as unknown as TripServiceInterface;
   

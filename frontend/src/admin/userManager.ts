@@ -26,7 +26,7 @@ async function loadUsers() {
               <option value="admin" ${toRole(u) === 'Admin' ? 'selected' : ''}>Admin</option>
             </select>
           </td>
-          <td><button class="btn-delete" data-id="${u.username}"><i class="bx bx-trash"></i> ลบ</button></td>
+          <td><button class="btn-delete" data-id="${u.username}"><i class="bx bx-trash"></i> Ban</button></td>
         </tr>
       `).join('')
       : `<tr><td colspan="4" style="text-align:center;">ไม่พบผู้ใช้</td></tr>`;
@@ -44,10 +44,10 @@ async function loadUsers() {
 
     document.querySelectorAll<HTMLButtonElement>('.btn-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('คุณแน่ใจหรือไม่ที่จะลบผู้ใช้นี้?')) return;
+        if (!confirm('คุณแน่ใจหรือไม่ที่จะแบนผู้ใช้นี้?')) return;
         const id = btn.dataset.id!;
         const res = await deleteUser(id);
-        alert(res.success ? 'ลบผู้ใช้สำเร็จ' : res.message || 'ไม่สามารถลบได้');
+        alert(res.success ? 'แบนผู้ใช้สำเร็จ' : res.message || 'ไม่สามารถแบนได้');
         loadUsers();
       });
     });

@@ -297,12 +297,53 @@ html, body {
 .place-card-content {
     padding: 12px;
 }
+
 .place-header {
-    position: relative;
-    display:flex;
-    justify-content: space-between;
-    align-items:center;
-    gap:8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* กลุ่มซ้าย: หมายเลข + ชื่อ */
+.place-header .left-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0; /* กันข้อความล้น */
+}
+
+/* กลุ่มขวา: ปุ่มลบ + label ต่างๆ */
+.place-header .right-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* หมายเลขสถานที่ */
+.place-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a6cf7;
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+/* ป้องกันชื่อสถานที่โดนบีบ */
+.place-header .kv {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .position-label {
@@ -1102,7 +1143,7 @@ html, body {
   vertical-align: middle;
   margin-top: 1px;
 }
-  
+
   /* ==============================
      📱 Responsive
      ============================== */

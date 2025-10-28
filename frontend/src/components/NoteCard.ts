@@ -1,18 +1,11 @@
-// src/components/NoteCard.ts
-import { appState } from '../state/index.js';
-import { getTripService } from '../services/config.js';
+import { appState, triggerAutoSave } from '../state/index.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';
-// 🔽 1. แก้ไข: import Type ทั้งหมดมาจากที่ใหม่ที่เดียว 🔽
 import type { NoteItem, DayItem } from '../types.js';
 
-const debouncedSave = debounce(async () => {
-    try {
-        const tripService = await getTripService();
-        await tripService.saveCurrentTrip();
-    } catch (error) {
-        console.error("Failed to save note:", error);
-    }
+// ✅ ใช้ autosave system กลางแทน tripService
+const debouncedAutoSave = debounce(() => {
+  triggerAutoSave(600);
 }, 500);
 
 export function createNoteCardElement(note: NoteItem, itemIndex: number, dayIndex: number): HTMLDivElement {
@@ -29,10 +22,9 @@ export function createNoteCardElement(note: NoteItem, itemIndex: number, dayInde
 
   const deleteButton = noteCard.querySelector<HTMLButtonElement>('.del-note-btn');
   if (deleteButton) {
-    deleteButton.addEventListener('click', async () => {
+    deleteButton.addEventListener('click', () => {
       appState.currentTrip.days[dayIndex].items.splice(itemIndex, 1);
-      const tripService = await getTripService();
-      await tripService.saveCurrentTrip();
+      triggerAutoSave(800);
       handleAppRender();
     });
   }
@@ -42,11 +34,9 @@ export function createNoteCardElement(note: NoteItem, itemIndex: number, dayInde
     textArea.addEventListener('input', (e: Event) => {
       const target = e.target as HTMLTextAreaElement;
       const item: DayItem | undefined = appState.currentTrip.days[dayIndex].items[itemIndex];
-      
-      // 🔽 2. เพิ่ม Type Guard เพื่อตรวจสอบให้แน่ใจว่าเป็น NoteItem 🔽
       if (item && item.type === 'note') {
         item.text = target.value;
-        debouncedSave();
+        debouncedAutoSave();
       }
     });
   }
