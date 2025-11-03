@@ -124,26 +124,46 @@ function onMapsApiLoaded(): void {
   geocoder = new google.maps.Geocoder();
 
   map.addListener('click', (e: google.maps.MapMouseEvent | google.maps.IconMouseEvent) => {
-    clearTemporaryMarker();
-    if ('placeId' in e && e.placeId) {
-      (e as google.maps.IconMouseEvent).stop();
-      fetchAndDisplayPlaceDetails(e.placeId);
-      return;
-    }
-    if (e.latLng) {
-      geocoder.geocode({ location: e.latLng }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const placeData: PlaceDetails = {
-            name: results[0].formatted_address,
-            formatted_address: results[0].formatted_address,
-            geometry: { location: e.latLng! },
-          };
-          panToAndHighlightPlace(placeData);
-          renderPlaceDetailsPanel(placeData);
-        }
-      });
+  clearTemporaryMarker();
+
+  // ✅ ถ้า click ที่มี placeId → ดึงรายละเอียดปกติ
+  if ('placeId' in e && e.placeId) {
+    (e as google.maps.IconMouseEvent).stop();
+    fetchAndDisplayPlaceDetails(e.placeId);
+    return;
+  }
+
+  // ✅ ถ้าไม่มีพิกัด (เช่น null) → หยุดตรงนี้
+  if (!e.latLng) return;
+
+  const lat = e.latLng.lat();
+  const lng = e.latLng.lng();
+
+  geocoder.geocode({ location: e.latLng }, (results, status) => {
+    if (status === 'OK' && results && results[0]) {
+      const result = results[0];
+
+      // ✅ กำหนด place_id จำลอง ถ้าไม่มี
+      const fakeId = result.place_id || `manual-${Date.now()}`;
+
+      // ✅ สร้าง PlaceDetails ที่สมบูรณ์ขึ้น
+      const placeData: PlaceDetails = {
+        place_id: fakeId,
+        name: result.formatted_address || 'Pinned location',
+        formatted_address: result.formatted_address || '',
+        geometry: { location: e.latLng },
+        location: { lat, lng },
+        photos: [],
+      };
+
+      panToAndHighlightPlace(placeData);
+      renderPlaceDetailsPanel(placeData);
+    } else {
+      console.warn('[MAP] Geocode failed:', status);
     }
   });
+  });
+
 
   mapsApiReady = true;
   mapReadyPromiseResolver(true);

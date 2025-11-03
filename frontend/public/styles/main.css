@@ -116,6 +116,7 @@ html, body {
     padding: 20px;
     border-right: 1px solid #ccc;
     overflow-y: auto;
+    transition: none !important;
 }
 /* ... rest of the file is the same as the correct version you provided ... */
 .sidebar h2 {
@@ -188,6 +189,7 @@ html, body {
     padding: 30px;
     background-color: #FFFFFF;
     overflow-y: auto;
+    transition: none !important;
 }
 /* ... etc ... */
 .day-section {
@@ -522,6 +524,8 @@ html, body {
 .popup-content button:hover {
     background-color: #bbb;
 }
+
+/* === STYLES FOR PLACE DETAILS PANEL === */
 .place-details-panel {
     position: absolute;
     bottom: 10px; left: 10px; right: 10px;
@@ -535,13 +539,16 @@ html, body {
     visibility: hidden;
     opacity: 0;
     transform: translateY(20px);
+    will-change: opacity, transform;
     transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, visibility 0.2s;
 }
+
 .place-details-panel.active {
     visibility: visible;
     opacity: 1;
     transform: translateY(0);
 }
+
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -1144,29 +1151,3 @@ html, body {
   margin-top: 1px;
 }
 
-  /* ==============================
-     📱 Responsive
-     ============================== */
-  /* @media (max-width: 1024px) {
-    .recommend-results {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .rec-card {
-      width: 90%;
-    }
-  }
-  
-  @media (max-width: 640px) {
-    .recommend-results {
-      grid-template-columns: repeat(1, 1fr);
-    }
-    .recommend-content {
-      width: 95vw;
-      max-height: 94vh;
-    }
-    .rec-card {
-      width: 100%;
-    }
-  }
-  
-   */

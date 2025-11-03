@@ -11,7 +11,7 @@
       img-src 'self' data: https://maps.googleapis.com https://maps.gstatic.com https://maps.google.com https://*.googleusercontent.com https://places.googleapis.com;
       connect-src 'self' http://localhost:3000 https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com;
       font-src 'self' https://fonts.gstatic.com https://unpkg.com;
-      frame-src https://www.google.com;
+      frame-src https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com;
   ">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tiew Thai — Planner</title>
@@ -22,6 +22,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
   <link rel="stylesheet" href="/styles/base.css" />
   <link rel="stylesheet" href="/styles/main.css" />
+  <link rel="stylesheet" href="/styles/help.css" />
+  
 </head>
 <body>
   <div class="page-container">
@@ -32,8 +34,8 @@
         </div>
         <span id="save-status"></span>
         <div class="nav-links">
+          <a href="#" id="help-btn" title="คู่มือการใช้งาน">?</a>
           <a href="#" id="new-plan-btn">New Plan</a>
-          <a href="#" id="save-plan-btn">Save</a>
           <a href="/my-plans.html">My Plans</a>
           <a href="#" id="recommend-btn">Recommend Places</a>
         </div>
@@ -99,11 +101,37 @@
     </div>
   </div>
 
+  <div id="help-modal" class="help-modal">
+    <div class="help-content">
+      <div class="help-header">
+        <h3>คู่มือการใช้งานเว็บไซต์</h3>
+        <button id="help-close"><i class='bx bx-x'></i></button>
+      </div>
+      <div class="help-body">
+        <div class="help-sidebar">
+          <ul id="help-topics">
+            <li data-topic="intro" class="active">เริ่มต้นใช้งาน / สร้างแผนเที่ยวใหม่</li>
+            <li data-topic="dates">กำหนดช่วงวันเดินทาง</li>
+            <li data-topic="add">เพิ่มสถานที่ท่องเที่ยวในแต่ละวัน</li>
+            <li data-topic="details">ตั้งเวลา / เพิ่มบันทึกภายในวัน</li>
+            <li data-topic="order">การจัดลำดับสถานที่ (ลาก–วาง)</li>
+            <li data-topic="manage">ดูและจัดการแผนของฉัน<br>(My Plans)</li>
+          </ul>
+        </div>
+        <div class="help-main" id="help-main">
+          <iframe id="help-video" width="100%" height="360" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   <script type="module" src="/src/pages/planner/index.ts"></script>
   <script type="module" src="/src/recommend/recommend-modal.ts"></script>
+  <script type="module" src="/src/help/help-modal.ts"></script>
+
 </body>
 </html>

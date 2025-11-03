@@ -147,10 +147,15 @@ async function wireEvents(): Promise<void> {
   if (tripNameInput) {
     tripNameInput.addEventListener('change', async (e: Event) => {
       const target = e.target as HTMLInputElement;
-      updateCurrentTripName(target.value);
+      updateCurrentTripName(target.value.trim());
       updateSaveStatus('Saving...');
-      await tripService.saveCurrentTrip();
-      updateSaveStatus('All changes saved ✅');
+      try {
+        await tripService.saveCurrentTrip();
+        updateSaveStatus('Saved');
+      } catch (err) {
+        console.error('[PLANNER] Failed to save trip:', err);
+        updateSaveStatus('Save failed', true);
+      }
     });
   }
 
@@ -163,16 +168,6 @@ async function wireEvents(): Promise<void> {
         createNewLocalTrip();
         handleAppRender();
       }
-    });
-  }
-
-  const saveBtn = document.getElementById('save-plan-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', async (e: MouseEvent) => {
-      e.preventDefault();
-      updateSaveStatus('Saving...');
-      await tripService.saveCurrentTrip();
-      updateSaveStatus('All changes saved ✅');
     });
   }
 

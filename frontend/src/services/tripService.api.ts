@@ -1,3 +1,4 @@
+// frontend/src/services/tripService.api.ts
 import { appState, setTripList, setCurrentTrip } from "../state/index.js";
 import type { Trip } from "../types.js";
 import { summarizeDayRoute } from "../services/routeService.js"; // ✅ ใช้อยู่แล้ว
@@ -164,7 +165,7 @@ export async function saveCurrentTrip(): Promise<any> {
     // ✅ merge state เดิมเพื่อไม่ให้ค่าใหม่หาย
     appState.currentTrip = { ...appState.currentTrip, ...newTrip };
     setCurrentTrip(appState.currentTrip);
-    updateSaveStatus(currentTripId ? "All changes saved ✅" : "Plan saved ✅");
+    updateSaveStatus(currentTripId ? "Saved" : "Plan saved ✅");
   } else {
     updateSaveStatus("Unable to save ❌", true);
   }

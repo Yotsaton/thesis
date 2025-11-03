@@ -1,0 +1,137 @@
+/* ==============================
+   🌿 HELP / TUTORIAL MODAL
+   ============================== */
+
+/* --- Overlay --- */
+.help-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.help-modal.active {
+  display: flex;
+}
+
+/* --- Content Box --- */
+.help-content {
+  background: #fff;
+  border-radius: 16px;
+  width: min(1000px, 95vw);
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: scaleUp 0.25s ease-out;
+}
+
+/* --- Header --- */
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: linear-gradient(135deg, #739371, #557253);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.help-header h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+#help-close {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+#help-close i {
+  font-size: 22px;
+  color: #fff;
+}
+
+#help-close:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* --- Body --- */
+.help-body {
+  display: flex;
+  flex: 1;
+  background: #fafafa;
+  overflow: hidden;
+}
+
+/* --- Sidebar --- */
+.help-sidebar {
+  width: 240px;
+  background: #f7f9f7;
+  border-right: 1px solid #e1e1e1;
+  display: flex;
+  flex-direction: column;
+}
+
+#help-topics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#help-topics li {
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  border-left: 4px solid transparent;
+  transition: background 0.2s, border-left-color 0.2s, color 0.2s;
+}
+
+#help-topics li:hover {
+  background: #eef4ee;
+  color: #557253;
+}
+
+#help-topics li.active {
+  background: #e9f0ea;
+  border-left-color: #739371;
+  color: #557253;
+  font-weight: 600;
+}
+
+/* --- Main Panel --- */
+.help-main {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+}
+
+#help-video {
+  width: 100%;
+  height: 420px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+}
+

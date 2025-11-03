@@ -1,3 +1,5 @@
+// src/state/index.ts
+console.log('[STATE] Module loaded ✅');
 import { getTripService } from '../services/config.js';
 import type { Trip, Day, PlaceItem, AppState } from '../types.js';
 
