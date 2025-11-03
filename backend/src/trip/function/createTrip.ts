@@ -119,15 +119,15 @@ export async function createTrip(
     // 1) INSERT trip
     const tripRow = await t.one<TripRow>(
       `
-      INSERT INTO public.trip (username, start_plan, end_plan, header, status)
-      VALUES ($[username], $[start_plan], $[end_plan], $[header], 'active')
-      RETURNING id, username, start_plan, end_plan, status, created_at, header, updated_at, deleted_at
+      INSERT INTO public.trip (username, start_plan, end_plan, name, status)
+      VALUES ($[username], $[start_plan], $[end_plan], $[name], 'active')
+      RETURNING id, username, start_plan, end_plan, status, created_at, name, updated_at, deleted_at
       `,
       {
         username,
         start_plan: payload.start_plan, // 'YYYY-MM-DD'
         end_plan: payload.end_plan,     // 'YYYY-MM-DD'
-        header: name || null,
+        name: name || null,
       }
     );
 
@@ -140,14 +140,14 @@ export async function createTrip(
     for (const d of daysSorted) {
       const dayRow = await t.one<DayTripRow>(
         `
-        INSERT INTO public.day_trip (trip_id, "date", header)
-        VALUES ($[trip_id], $[date], $[header])
-        RETURNING id, trip_id, created_at, "date", header, updated_at
+        INSERT INTO public.day_trip (trip_id, "date", subheading)
+        VALUES ($[trip_id], $[date], $[subheading])
+        RETURNING id, trip_id, created_at, "date", subheading, updated_at
         `,
         {
           trip_id: tripRow.id,
           date: d.date,                                   // 'YYYY-MM-DD'
-          header: (d.subheading ?? "").trim() || null,    // ชื่อย่อยประจำวัน
+          subheading: (d.subheading ?? "").trim() || null,    // ชื่อย่อยประจำวัน
         }
       );
 
@@ -170,8 +170,8 @@ export async function createTrip(
               day_id: dayRow.id,
               place_id: placeId,
               index: index++,
-              start_time: (item as PlaceItem).startTime ?? null,
-              end_time: (item as PlaceItem).endTime ?? null,
+              start_time: (item as PlaceItem).startTime == "" ? null : (item as PlaceItem).startTime ,
+              end_time: (item as PlaceItem).endTime == "" ? null : (item as PlaceItem).endTime,
             }
           );
         } else if (item?.type === "note") {

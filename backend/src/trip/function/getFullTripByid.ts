@@ -33,7 +33,7 @@ export async function getFullTrip(
       `
       SELECT
         id, username, start_plan, end_plan, status,
-        created_at, header, updated_at, deleted_at
+        created_at, name, updated_at, deleted_at
       FROM public.trip
       WHERE id = $1::uuid AND status != 'delete'
       `,
@@ -48,7 +48,7 @@ export async function getFullTrip(
     // 2) day_trip
     const days = await t.any<DayTripRow>(
       `
-      SELECT id, trip_id, created_at, "date", header, updated_at
+      SELECT id, trip_id, created_at, "date", subheading, updated_at
       FROM public.day_trip
       WHERE trip_id = $1::uuid
       ORDER BY "date" ASC, created_at ASC
@@ -94,7 +94,7 @@ export async function getFullTrip(
     // 4) map โครง Trip
     const result: Trip = {
       id: trp.id,
-      name: trp.header ?? "",
+      name: trp.name ?? "",
       start_plan: trp.start_plan,
       end_plan: trp.end_plan,
       updatedAt: trp.updated_at ?? undefined,
@@ -129,7 +129,7 @@ export async function getFullTrip(
         return {
           id: d.id,
           date: d.date,
-          subheading: d.header ?? "",
+          subheading: d.subheading ?? "",
           updatedAt: d.updated_at ? d.updated_at.toISOString() : undefined,
           items, // ตอนนี้เป็น DayItem[] อย่างถูกชนิด
         };

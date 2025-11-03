@@ -87,7 +87,7 @@ export async function updateTripDeep(
     // 1) ตรวจสอบสิทธิ์ + ดึงทริปจาก DB
     const tripRow = await t.oneOrNone<TripRow>(
       `
-      SELECT id, username, header, created_at, updated_at, start_plan, end_plan, status
+      SELECT id, username, name, created_at, updated_at, start_plan, end_plan, status
       FROM public.trip
       WHERE id = $1
       LIMIT 1
@@ -113,22 +113,22 @@ export async function updateTripDeep(
       throw err;
     }
 
-    // 2) UPDATE ตัว head ของทริป (header/start_plan/end_plan/name)
+    // 2) UPDATE ตัว head ของทริป (start_plan/end_plan/name)
     const name = (payload as any)?.name?.trim?.() || null;
 
     const updatedTrip = await t.one<TripRow>(
       `
       UPDATE public.trip
-         SET header = $[header],
+         SET name = $[name],
              start_plan = $[start_plan],
              end_plan = $[end_plan],
              updated_at = now()
        WHERE id = $[id]
-       RETURNING id, username, header, created_at, updated_at, start_plan, end_plan, status
+       RETURNING id, username, name, created_at, updated_at, start_plan, end_plan, status
       `,
       {
         id: tripRow.id,
-        header: name,
+        name: payload.name,
         start_plan: payload.start_plan,
         end_plan: payload.end_plan,
       }
@@ -137,7 +137,7 @@ export async function updateTripDeep(
     // 3) โหลด day_trip และ route ปัจจุบันของทริป
     const existingDays = await t.manyOrNone<DayTripRow>(
       `
-      SELECT id, trip_id, created_at, "date", header, updated_at
+      SELECT id, trip_id, created_at, "date", subheading, updated_at
       FROM public.day_trip
       WHERE trip_id = $1
       ORDER BY "date" ASC, id ASC
@@ -181,29 +181,29 @@ export async function updateTripDeep(
           `
           UPDATE public.day_trip
              SET "date" = $[date],
-                 header = $[header],
+                 subheading = $[subheading],
                  updated_at = now()
            WHERE id = $[id]
-           RETURNING id, trip_id, created_at, "date", header, updated_at
+           RETURNING id, trip_id, created_at, "date", subheading, updated_at
           `,
           {
             id: d.id,
             date: d.date,
-            header: (d.subheading ?? "").trim() || null,
+            subheading: (d.subheading ?? "").trim() || null,
           }
         );
       } else {
         // ไม่มีใน DB → สร้างใหม่
         dayRow = await t.one<DayTripRow>(
           `
-          INSERT INTO public.day_trip (trip_id, "date", header)
-          VALUES ($[trip_id], $[date], $[header])
-          RETURNING id, trip_id, created_at, "date", header, updated_at
+          INSERT INTO public.day_trip (trip_id, "date", subheading)
+          VALUES ($[trip_id], $[date], $[subheading])
+          RETURNING id, trip_id, created_at, "date", subheading, updated_at
           `,
           {
             trip_id: tripRow.id,
             date: d.date,
-            header: (d.subheading ?? "").trim() || null,
+            subheading: (d.subheading ?? "").trim() || null,
           }
         );
       }

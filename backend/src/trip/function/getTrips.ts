@@ -69,10 +69,10 @@ export async function listTripsAuthorized(
     conditions.push(`t.status = $[status_default]`);
   }
 
-  // ค้นหา header แบบ ILIKE
+  // ค้นหา name แบบ ILIKE
   if (opts.q && opts.q.trim() !== "") {
     params.q = `%${opts.q.trim()}%`;
-    conditions.push(`t.header ILIKE $[q]`);
+    conditions.push(`t.name ILIKE $[q]`);
   }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -85,7 +85,7 @@ export async function listTripsAuthorized(
       t.end_plan,
       t.status,
       t.created_at,
-      t.header,
+      t.name,
       t.updated_at,
       t.deleted_at
     FROM public.trip t
@@ -130,7 +130,7 @@ export async function getTrip(accessor: Accessor, trip_id: string): Promise<trip
       t.end_plan,
       t.status,
       t.created_at,
-      t.header,
+      t.name,
       t.updated_at,
       t.deleted_at
     FROM public.trip t

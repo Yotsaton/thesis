@@ -41,7 +41,7 @@ export interface trip{
   end_plan : DateYMD ;
   status : "active" | "deleted"; 
   created_at : Date ;
-  header : string | null;
+  name : string | null;
   updated_at : Date ;
   deleted_at : Date | null ;
 }
@@ -51,7 +51,7 @@ export interface day_trip{
   trip_id : string ; // FK from trip table
   created_at : Date ;
   date : DateYMD ; // date for plan
-  header : string | null; 
+  subheading : string | null; 
   updated_at : Date ;
 }
 

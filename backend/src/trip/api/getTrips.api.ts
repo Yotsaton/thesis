@@ -59,7 +59,7 @@ export const getTripsapi = async (req: AuthenticatedRequest, res: Response) => {
 
     const trips = items.map(trip => ({
       id: trip.id,
-      name: trip.header,
+      name: trip.name,
       start_plan: trip.start_plan,
       end_plan: trip.end_plan,
       status: trip.status,
