@@ -10,12 +10,12 @@ export function initHelpModal(): void {
 
   // 🎥 ลิงก์วิดีโอของแต่ละหัวข้อ (สามารถเปลี่ยนเป็นลิงก์จริงได้ภายหลัง)
   const helpLinks: Record<string, string> = {
-    intro: 'https://www.youtube.com/embed/your_video_intro_id',       // เริ่มต้นใช้งาน / สร้างแผนเที่ยวใหม่
-    dates: 'https://www.youtube.com/embed/your_video_dates_id',       // กำหนดช่วงวันเดินทาง
-    add: 'https://www.youtube.com/embed/your_video_add_id',           // เพิ่มสถานที่ท่องเที่ยวในแต่ละวัน
-    details: 'https://www.youtube.com/embed/your_video_details_id',   // ตั้งเวลา / เพิ่มบันทึกภายในวัน
-    order: 'https://www.youtube.com/embed/your_video_order_id',       // การจัดลำดับสถานที่ (ลาก–วาง)
-    manage: 'https://www.youtube.com/embed/your_video_manage_id',     // ดูและจัดการแผนของฉัน
+    intro: 'https://www.youtube.com/embed/taoObotE1_U?si=QZT6w8qT-W5iGfP2',       // เริ่มต้นใช้งาน / สร้างแผนเที่ยวใหม่
+    dates: 'https://www.youtube.com/embed/Wc4QvAR7BKY?si=H2kWpyfDGuKwOFiL',       // กำหนดช่วงวันเดินทาง
+    add: 'https://www.youtube.com/embed/GDCsk6kgkXM?si=t1VPZ8KeVrRDk4mV',           // เพิ่มสถานที่ท่องเที่ยวในแต่ละวัน
+    details: 'https://www.youtube.com/embed/J-czJ81wuW0?si=5RqDfIto-VmdDzFG',   // ตั้งเวลา / เพิ่มบันทึกภายในวัน
+    order: 'https://www.youtube.com/embed/rN-kxDpN2jg?si=htVYxTk6UW7E8vsZ',       // การจัดลำดับสถานที่ (ลาก–วาง)
+    manage: 'https://www.youtube.com/embed/8A-6kXo1oAo?si=1Q-9U2b9zonMg8UL',     // ดูและจัดการแผนของฉัน
   };
 
   // 🧩 ตรวจสอบว่า element สำคัญมีครบหรือไม่
