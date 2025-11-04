@@ -41,6 +41,7 @@ export function createPlaceCardElement(
     ? `<span class="place-number" style="background:${numberColor}">${displayNumber}</span>`
     : '';
 
+  // ✅ เพิ่มปุ่ม Reset Time
   placeCard.innerHTML = `
     <div class="place-card-content">
       <div class="place-header">
@@ -57,6 +58,7 @@ export function createPlaceCardElement(
         <input type="text" class="start-time flatpickr-time-input" placeholder="--:--" value="${place.startTime || ''}" />
         <span>–</span>
         <input type="text" class="end-time flatpickr-time-input" placeholder="--:--" value="${place.endTime || ''}" />
+        <button class="clear-time-btn" title="Clear times"><i class='bx bx-eraser'></i></button>
       </div>
     </div>
     <div class="travel-info" id="travel-info-${dayIndex}-${itemIndex}"></div>
@@ -70,6 +72,24 @@ export function createPlaceCardElement(
         appState.currentTrip.days[dayIndex].items.splice(itemIndex, 1);
         triggerAutoSave(800);
         handleAppRender();
+      }
+    });
+  }
+
+  // ✅ ปุ่มเคลียร์เวลา (Reset)
+  const clearTimeButton = placeCard.querySelector<HTMLButtonElement>('.clear-time-btn');
+  if (clearTimeButton) {
+    clearTimeButton.addEventListener('click', () => {
+      const item = appState.currentTrip?.days?.[dayIndex]?.items?.[itemIndex];
+      if (item && item.type === 'place') {
+        item.startTime = '';
+        item.endTime = '';
+        // รีเซ็ตช่องอินพุตให้ว่าง
+        const startInput = placeCard.querySelector<HTMLInputElement>('.start-time');
+        const endInput = placeCard.querySelector<HTMLInputElement>('.end-time');
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+        debouncedAutoSaveAndRender();
       }
     });
   }

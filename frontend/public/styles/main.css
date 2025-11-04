@@ -392,6 +392,7 @@ html, body {
     background-color: #f8f9fa;
     border-radius: 6px;
 }
+
 .place-times input[type="time"] {
     border: none;
     background-color: transparent;
@@ -404,9 +405,25 @@ html, body {
 .place-times input[type="time"]:focus {
     outline: 2px solid #739371;
 }
+
+.clear-time-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 1.1rem;
+  margin-left: 6px;
+  transition: color 0.2s ease;
+}
+
+.clear-time-btn:hover {
+  color: #d9534f;
+}
+
 .note-box {
     padding: 0;
 }
+
 .note-header {
     display: flex;
     align-items: center;
@@ -418,13 +435,16 @@ html, body {
     font-weight: 600;
     color: #555;
 }
+
 .note-header i {
     font-size: 18px;
 }
+
 .note-box .note-header .del-note-btn {
     position: static;
     margin-left: auto;
 }
+
 .note-box textarea {
     width: 100%;
     min-height: 80px;
@@ -435,6 +455,7 @@ html, body {
     resize: vertical;
     background-color: transparent;
 }
+
 .note-box textarea:focus {
     outline: none;
 }
