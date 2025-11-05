@@ -72,7 +72,7 @@ html, body {
 
 #save-status {
     flex-grow: 1; /* ดัน nav-links ไปทางขวา */
-    text-align: center;
+    text-align: left;
     font-style: italic;
     font-size: 14px;
     color: #d8f1d8;

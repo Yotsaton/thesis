@@ -1,3 +1,4 @@
+//src/components/PlaceCard.ts
 import { appState, triggerAutoSave } from '../state/index.js';
 import { handleAppRender } from '../pages/planner/index.js';
 import { escapeHtml, debounce } from '../helpers/utils.js';

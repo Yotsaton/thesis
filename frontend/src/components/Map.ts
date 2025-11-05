@@ -1,3 +1,4 @@
+//src/components/Map.ts
 import { appState } from '../state/index.js';
 import { CONFIG } from '../services/config.js';
 import { renderPlaceDetailsPanel, type PlaceDetails } from './PlaceDetailsPanel.js';
@@ -11,7 +12,7 @@ type GoogleMap = google.maps.Map;
 type GoogleMarker = google.maps.Marker;
 type LatLngBounds = google.maps.LatLngBounds;
 
-// --- State ---
+// --- State ---  
 let map: GoogleMap;
 let markers: GoogleMarker[] = [];
 let dailyRoutePolylines: google.maps.Polyline[] = [];
@@ -228,13 +229,21 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
   // --- Draw markers ---
   for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
     const day = days[dayIndex];
-    const placesOnly = (day.items || []).filter(
-      (item): item is PlaceItem =>
-        item.type === 'place' &&
-        !!item.location &&
-        Array.isArray(item.location.coordinates) &&
-        item.location.coordinates.length === 2
+    const placesOnly = (day.items || []).filter((item): item is PlaceItem => {
+    // ✅ ตรวจสอบให้แน่ชัดว่า item เป็น place เท่านั้น
+    return Boolean(
+      item &&
+      typeof item === 'object' &&
+      item.type === 'place' &&
+      typeof item.name === 'string' &&
+      item.location &&
+      Array.isArray(item.location.coordinates) &&
+      item.location.coordinates.length === 2 &&
+      typeof item.location.coordinates[0] === 'number' &&
+      typeof item.location.coordinates[1] === 'number'
     );
+  });
+
 
     const isVisible =
       typeof focusedDayIndex !== 'number' || focusedDayIndex === dayIndex;
@@ -245,9 +254,15 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
       const [lng, lat] = p.location!.coordinates;
       const position = { lat, lng };
 
-      const info = numberingMap[`${dayIndex}-${placeIndex}`];
+      const originalIndex = day.items.findIndex(i => i === p);
+      const info = numberingMap[`${dayIndex}-${originalIndex}`];
       const labelText = info?.number ? String(info.number) : '';
       const markerColor = info?.color || day.color;
+
+      const markerTitle =
+      typeof p.name === 'string'
+        ? p.name
+        : (typeof (p as any)?.title === 'string' ? (p as any).title : '');
 
       const marker = new google.maps.Marker({
         position,
@@ -258,7 +273,7 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
           color: 'white',
           fontWeight: 'bold',
         },
-        title: p.name ?? '',
+        title: markerTitle,
       });
       markers.push(marker);
       bounds.extend(position);

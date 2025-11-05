@@ -165,9 +165,9 @@ export async function saveCurrentTrip(): Promise<any> {
     // ✅ merge state เดิมเพื่อไม่ให้ค่าใหม่หาย
     appState.currentTrip = { ...appState.currentTrip, ...newTrip };
     setCurrentTrip(appState.currentTrip);
-    updateSaveStatus(currentTripId ? "Saved" : "Plan saved ✅");
+    updateSaveStatus(currentTripId ? "Saved" : "Plan saved");
   } else {
-    updateSaveStatus("Unable to save ❌", true);
+    updateSaveStatus("Unable to save", true);
   }
 
   return data;
