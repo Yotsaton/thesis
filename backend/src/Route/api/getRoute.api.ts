@@ -148,7 +148,7 @@ export const getTSPWithRouteapi = async (req: AuthenticatedRequest, res: Respons
     const { places } = parsed;
 
     // 1) ตรึง start/end และจัดลำดับจุดกลางด้วย TSP heuristic ของโปรเจกต์
-    const { path: ordered } = solveTSPFromPlaces(places);
+    const { path: ordered } = await solveTSPFromPlaces(places, {distanceMode: "real"});
 
     // 2) map เป็น origin / waypoints / destination เพื่อเรียก ORS ผ่าน getRouteCore
     const origin = ordered[0].location as geoJSONPoint;

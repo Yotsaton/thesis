@@ -8,7 +8,7 @@ export interface PlaceItem {
   type: 'place';
   id: string | null;
   place_id?: string;
-  location?: geoJSONPoint;
+  location: geoJSONPoint;
   name?: string;
   startTime?: Time;
   endTime?: Time;
@@ -44,6 +44,11 @@ export type RouteResult = {
   geometry: LineString;
   segments: ORSSegment[];
 }
+
+export type TSPSolveOptions = {
+  distanceMode?: "haversine" | "real";   // "real" เรียก ORS หนเดียวตอนสรุปเส้นทาง
+  bruteForceLimit?: number;              // รวมปลายทั้งสอง ขีดจำกัด brute force (default 9)
+};
 
 export type InsertRoutesOptions = {
   /** append = ต่อท้ายของเดิม, replace = ลบทิ้งของเดิมทั้งวันก่อนแล้วค่อยใส่ใหม่ */
