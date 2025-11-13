@@ -1,29 +1,30 @@
 // src/Route/functions/TSP_func.ts
+import 'dotenv/config';
+import { TSPSolveOptions, type PlaceItem } from "../types/types";
 
-import { RouteResult, TSPSolveOptions, type PlaceItem } from "../types/types";
-import { getRoute } from "./getRoute";
+ const ORS_MATRIX_URL = "https://api.openrouteservice.org";
+ const ORS_MATRIX_TIMEOUT_MS = 20000; // 20 วินาที
+ const ORS_API_KEY = String(process.env.ORS_API_KEY);
 
-/** Ensure PlaceItem has a valid GeoJSON Point and return [lon, lat] */
-function getLonLat(p: PlaceItem, i: number): [number, number] {
-  if (!p.location || p.location.type !== "Point" || !Array.isArray(p.location.coordinates)) {
-    throw new Error(`PlaceItem[${i}] is missing a valid GeoJSON Point location`);
+// ====== Helpers: ระยะทาง ======
+function buildHaversineMatrix(coords: [number, number][]): number[][] {
+  const n = coords.length;
+  const D: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dij = haversineMeters(coords[i], coords[j]);
+      D[i][j] = dij;
+      D[j][i] = dij;
+    }
   }
-  const [lon, lat] = p.location.coordinates;
-  if (
-    typeof lon !== "number" || typeof lat !== "number" ||
-    lon < -180 || lon > 180 || lat < -90 || lat > 90
-  ) {
-    throw new Error(`PlaceItem[${i}] has invalid lon/lat: [${lon}, ${lat}]`);
-  }
-  return [lon, lat];
+  return D;
 }
 
-/** Haversine distance (km) using PlaceItem.location */
-function haversineKm(a: PlaceItem, b: PlaceItem): number {
-  const [lon1, lat1] = getLonLat(a, -1);
-  const [lon2, lat2] = getLonLat(b, -1);
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371; // km
+function haversineMeters(a: [number, number], b: [number, number]): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const [lon1, lat1] = a;
+  const [lon2, lat2] = b;
+  const R = 6371000; // m
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const s1 = Math.sin(dLat / 2) ** 2;
@@ -31,34 +32,96 @@ function haversineKm(a: PlaceItem, b: PlaceItem): number {
   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
 }
 
-/** Sum of Haversine along an order of indices */
-function pathHaversineKmByOrder(places: PlaceItem[], order: number[]): number {
+async function buildORSMatrix(
+  coords: [number, number][],
+): Promise<number[][]> {
+  if (coords.length > 50) {
+    throw new Error(`ORS Matrix จำกัดสูงสุด 50 จุดต่อคำขอ (ปัจจุบัน: ${coords.length})`);
+  }
+  
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ORS_MATRIX_TIMEOUT_MS);
+
+  try {
+    const resp = await fetch(`${ORS_MATRIX_URL}/v2/matrix/${encodeURIComponent("driving-car")}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: ORS_API_KEY,
+      },
+      body: JSON.stringify({
+        locations: coords,          // [[lon,lat], ...]
+        metrics: ['distance'],      // ขอระยะทาง (เมตร)
+        resolve_locations: false,   // ไม่ต้อง snap/แก้พิกัด
+      }),
+    });
+
+    if (!resp.ok) {
+      const text = await safeText(resp);
+      throw new Error(`ORS Matrix error: ${resp.status} ${resp.statusText} - ${text}`);
+    }
+
+    const json = (await resp.json()) as { distances?: number[][] };
+    const D = json.distances;
+    if (!D || !Array.isArray(D) || D.length !== coords.length) {
+      throw new Error('ORS Matrix response missing or invalid "distances"');
+    }
+    return D;
+  } catch (err) {
+    if ((err as any)?.name === 'AbortError') {
+      throw new Error('ORS Matrix request timed out');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function safeText(resp: Response): Promise<string> {
+  try {
+    return await resp.text();
+  } catch {
+    return '';
+  }
+}
+
+function sanitizeMatrix(D: number[][]): void {
+  const n = D.length;
+  for (let i = 0; i < n; i++) {
+    if (!Array.isArray(D[i]) || D[i].length !== n) {
+      throw new Error('Distance matrix is not square');
+    }
+    for (let j = 0; j < n; j++) {
+      const v = D[i][j];
+      if (!isFinite(v)) D[i][j] = Number.POSITIVE_INFINITY;
+      if (i === j) D[i][j] = 0;
+    }
+  }
+}
+
+function pathLengthFromMatrix(order: number[], D: number[][]): number {
   let sum = 0;
-  for (let i = 0; i < order.length - 1; i++) {
-    sum += haversineKm(places[order[i]], places[order[i + 1]]);
+  for (let k = 0; k < order.length - 1; k++) {
+    const i = order[k];
+    const j = order[k + 1];
+    const dij = D[i][j];
+    if (!isFinite(dij)) return Number.POSITIVE_INFINITY;
+    sum += dij;
   }
   return sum;
 }
 
-/** Evaluate a full order using ORS real route distance once (km). */
-async function pathRealKmByOrder(places: PlaceItem[], order: number[]): Promise<number> {
-  const first = places[order[0]].location;
-  const last = places[order[order.length - 1]].location;
-  const vias = order.slice(1, -1).map(i => places[i].location);
-  try {
-    const { route } = await getRoute(first, last, vias);
-    return route.distance / 1000; // meters -> km
-  } catch {
-    // Fallback หาก ORS ล้มเหลว ใช้ Haversine แทน
-    return pathHaversineKmByOrder(places, order);
-  }
-}
-
-/** Simple permutations generator for small arrays */
+// ====== Helpers: คณิต/perm ======
 function* permutations<T>(arr: T[]): Generator<T[]> {
+  // Heap's algorithm
   const a = arr.slice();
   const n = a.length;
   const c = new Array(n).fill(0);
+  if (n === 0) {
+    yield [];
+    return;
+  }
   yield a.slice();
   let i = 0;
   while (i < n) {
@@ -78,55 +141,20 @@ function* permutations<T>(arr: T[]): Generator<T[]> {
   }
 }
 
-/** Greedy nearest-neighbor สำหรับจุดกลาง (ตรึงปลายทางสองด้าน) */
-function nearestNeighborOrder(places: PlaceItem[], start: number, end: number, mids: number[]): number[] {
-  const remaining = new Set(mids);
-  const order = [start];
-  let curr = start;
-  while (remaining.size > 0) {
-    let best: number | null = null;
-    let bestD = Infinity;
-    for (const j of remaining) {
-      const d = haversineKm(places[curr], places[j]);
-      if (d < bestD) {
-        bestD = d;
-        best = j;
-      }
-    }
-    if (best === null) break;
-    order.push(best);
-    remaining.delete(best);
-    curr = best;
-  }
-  order.push(end);
-  return order;
+function range(lo: number, hi: number): number[] {
+  // รวม lo..hi (ถ้า hi < lo -> [])
+  const out: number[] = [];
+  for (let i = lo; i <= hi; i++) out.push(i);
+  return out;
 }
 
-/** 2-opt improvement (ใช้ Haversine เร็ว ๆ) ปลายทางคงที่ */
-function twoOptImprove(places: PlaceItem[], order: number[]): number[] {
-  const n = order.length;
-  let improved = true;
-  let bestOrder = order.slice();
-  let bestLen = pathHaversineKmByOrder(places, bestOrder);
-
-  while (improved) {
-    improved = false;
-    for (let i = 1; i < n - 2; i++) {       // skip fixed start
-      for (let k = i + 1; k < n - 1; k++) { // skip fixed end
-        const newOrder = bestOrder.slice(0, i)
-          .concat(bestOrder.slice(i, k + 1).reverse(), bestOrder.slice(k + 1));
-        const newLen = pathHaversineKmByOrder(places, newOrder);
-        if (newLen + 1e-9 < bestLen) {
-          bestLen = newLen;
-          bestOrder = newOrder;
-          improved = true;
-        }
-      }
-    }
+function required<T>(v: T | undefined, msg: string): T {
+  if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) {
+    throw new Error(msg);
   }
-  return bestOrder;
+  return v;
 }
-
+// ====== Main function ======
 /**
  * แก้ TSP แบบตรึงปลายทาง: order[0] = input[0], order[n-1] = input[n-1]
  * - n <= bruteForceLimit -> exact (permute mids)
@@ -135,51 +163,65 @@ function twoOptImprove(places: PlaceItem[], order: number[]): number[] {
  */
 export async function solveTSPFromPlaces(
   places: PlaceItem[],
-  opts: TSPSolveOptions = {}
-): Promise<{ path: PlaceItem[]; }> {
+  opts: TSPSolveOptions
+): Promise<PlaceItem[]> {
   if (!Array.isArray(places) || places.length < 2) {
-    throw new Error("solveTSPFromPlaces: need at least 2 places (start & end).");
+    return places.slice();
   }
 
-  // ตรวจพิกัดให้ครบก่อน จะได้ fail ไว
-  for (let i = 0; i < places.length; i++) getLonLat(places[i], i);
+  // validate GeoJSON & extract lon/lat
+  const coords: [number, number][] = places.map((p, i) => {
+    if (!p?.location || p.location.type !== 'Point' || !Array.isArray(p.location.coordinates)) {
+      throw new Error(`places[${i}] missing valid GeoJSON Point`);
+    }
+    const [lon, lat] = p.location.coordinates;
+    if (!isFinite(lon) || !isFinite(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+      throw new Error(`places[${i}] has invalid coordinates [${lon}, ${lat}]`);
+    }
+    return [lon, lat];
+  });
 
   const n = places.length;
+  if (n === 2) return places.slice(); // แค่ start->end ไม่มีอะไรให้เรียง
+
+  const limitMids = opts.limitMids ?? 9;
+  const midsCount = Math.max(0, n - 2);
+  if (midsCount > limitMids) {
+    throw new Error(
+      `จำนวนจุดกลาง = ${midsCount} เกินเพดาน brute force (${limitMids}). โปรดลดจำนวนจุดหรือเพิ่ม limitMids`
+    );
+  }
+
+  // เตรียม "ระยะทางคู่ต่อคู่" เป็นเมทริกซ์ (หน่วย: เมตร)
+  const D =
+    opts.mode === 'haversine'
+      ? buildHaversineMatrix(coords)
+      : await buildORSMatrix(coords);
+
+  // ค่าที่ ORS อาจให้ null/undefined/Infinity (ไม่มีเส้นทาง) → ถือว่าเป็น "ตัน" (Infinity)
+  sanitizeMatrix(D);
+
+  // brute force เฉพาะจุดกลาง
   const start = 0;
   const end = n - 1;
-
-  const mids: number[] = [];
-  for (let i = 1; i < n - 1; i++) mids.push(i);
-
-  const distanceMode = opts.distanceMode ?? "haversine";
-  const bruteForceLimit = opts.bruteForceLimit ?? 9;
+  const mids = range(1, n - 2); // 1..n-2
 
   let bestOrder: number[] | null = null;
-  let bestScore = Infinity;
+  let bestLen = Number.POSITIVE_INFINITY;
 
-  if (n <= bruteForceLimit) {
-    // exact search (permute mids)
-    for (const perm of permutations(mids)) {
-      const order = [start, ...perm, end];
-      const score = pathHaversineKmByOrder(places, order);
-      if (score < bestScore) {
-        bestScore = score;
-        bestOrder = order;
-      }
+  for (const perm of permutations(mids)) {
+    const order = [start, ...perm, end];
+    const len = pathLengthFromMatrix(order, D);
+    if (len < bestLen) {
+      bestLen = len;
+      bestOrder = order;
     }
-  } else {
-    // heuristic
-    const nn = nearestNeighborOrder(places, start, end, mids);
-    bestOrder = twoOptImprove(places, nn);
-    bestScore = pathHaversineKmByOrder(places, bestOrder);
   }
 
   if (!bestOrder) {
-    const fallback = [start, ...mids, end];
-    return {
-      path: fallback.map(i => places[i]),
-    };
+    // ไม่พบทางที่ใช้ได้ (เช่น มีคู่ที่ไปไม่ถึง) -> คืนลำดับเดิม
+    return places.slice();
   }
-  
-  return { path: bestOrder.map(i => places[i]) };
+
+  return bestOrder.map((i) => places[i]);
 }

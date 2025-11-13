@@ -45,21 +45,22 @@ export type RouteResult = {
   segments: ORSSegment[];
 }
 
+// ====== Options ======
 export type TSPSolveOptions = {
-  distanceMode?: "haversine" | "real";   // "real" เรียก ORS หนเดียวตอนสรุปเส้นทาง
-  bruteForceLimit?: number;              // รวมปลายทั้งสอง ขีดจำกัด brute force (default 9)
-};
-
-export type InsertRoutesOptions = {
-  /** append = ต่อท้ายของเดิม, replace = ลบทิ้งของเดิมทั้งวันก่อนแล้วค่อยใส่ใหม่ */
-  mode?: "append" | "replace";
+  /** เลือกวิธีคำนวณระยะทาง */
+  mode: 'haversine' | 'real';
   /**
-   * indexing:
-   *  - "auto"     : เพิกเฉย index ที่ส่งมา (ถ้ามี) แล้วจัดใหม่ตามลำดับอาเรย์
-   *  - "respect"  : ใช้ index ที่ระบุมา (ต้องไม่ชนกัน/ไม่ชนของเดิม)
-   *  - "autoIfMissing" (ค่าเริ่มต้น): ถ้า item ใดไม่มี index จะ auto ให้, ถ้ามีก็เคารพ
+   * จำนวน "จุดกลาง" สูงสุดที่ยอม brute force
+   * เช่น 9 หมายถึง (n-2) <= 9 -> permutations = 9! = 362,880
+   * ค่าเริ่มต้น: 9 (เหมาะกับเซิร์ฟเวอร์ทั่วไป)
    */
-  indexing?: "auto" | "respect" | "autoIfMissing";
-  /** ใช้กับ auto/autoIfMissing: เริ่มนับจากอะไร; append=เริ่มจาก max+1 เป็นค่าเริ่มต้น */
-  startIndex?: number;
+  limitMids?: number;
+  /** ใช้เมื่อ mode = 'real' */
+  apiKey?: string;
+  /** โปรไฟล์ ORS: 'driving-car' (default), 'foot-walking', 'cycling-regular', ... */
+  profile?: string;
+  /** ORS base URL */
+  baseUrl?: string; // default 'https://api.openrouteservice.org'
+  /** timeout สำหรับเรียก ORS (ms) */
+  timeoutMs?: number; // default 20000
 };
