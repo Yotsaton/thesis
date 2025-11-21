@@ -300,10 +300,12 @@ h1 { font-size: 32px; margin-bottom: 20px; color: #333; }
 #login-link {
     display: inline-block;
     width: 100%;
+    padding-top: 12px;
     text-align: center;
     text-decoration: none;
-    color: #739371;
+    color: #ffffff;
     font-weight: 600;
+    z-index: 1;
 }
 
 /* --- STYLES FOR PASSWORD VALIDATOR --- */

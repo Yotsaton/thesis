@@ -6,6 +6,7 @@ import {
   updateCurrentTripName,
   addPlaceToDay
 } from '../../state/index.js';
+import { CONFIG } from '../../services/config.js';
 import { getTripService } from '../../services/config.js';
 import { renderSidebar } from '../../components/Sidebar.js';
 import { renderItinerary } from '../../components/Itinerary.js';
@@ -137,9 +138,13 @@ async function wireEvents(): Promise<void> {
   const logoutBtn = document.querySelector<HTMLButtonElement>('.logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('activeTripId');
-      window.location.href = '/main.html';
+      // localStorage.removeItem('authToken');
+      // localStorage.removeItem('activeTripId');
+      // window.location.href = '/main.html';
+      fetch(`${CONFIG.API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).finally(() => (window.location.href = '/main.html'));
     });
   }
 

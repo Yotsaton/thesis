@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
+  const rid = urlParams.get("rid");
 
   function checkPasswordValidity(
     passwordInput: HTMLInputElement,
@@ -66,6 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (!rid) {
+      if (messageElement) {
+        messageElement.textContent = "Error: No reset identifier found. Please request a new link.";
+        messageElement.className = "form-message error";
+      }
+      return;
+    }
+
     if (submitButton?.disabled) {
       if (messageElement) {
         messageElement.textContent = "Please ensure your password meets all requirements.";
@@ -87,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
       submitButton.textContent = "Saving...";
     }
 
-    const data = await resetPassword(token, password);
+    const data = await resetPassword(rid, token, password);
     if (data?.success) {
       if (messageElement) {
         messageElement.textContent = "Password has been reset successfully!";

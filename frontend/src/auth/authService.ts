@@ -68,11 +68,11 @@ export function resendOtp(username: string): Promise<ApiResponse> {
 }
 
 export function forgotPassword(email: string): Promise<ApiResponse> {
-  return apiRequest('/auth/forgot-password', { email });
+  return apiRequest('/auth/password/forgotpass', { email });
 }
 
-export function resetPassword(token: string, password: string): Promise<ApiResponse> {
-  return apiRequest('/auth/reset-password', { token, password });
+export function resetPassword(rid:string, token: string, new_password: string): Promise<ApiResponse> {
+  return apiRequest('/auth/password/verifylink', { rid,token, new_password });
 }
 
 export function getCurrentUser(): Promise<ApiResponse<{ username: string; email: string; role: string }>> {

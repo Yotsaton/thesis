@@ -2,10 +2,11 @@
 import { getCurrentUser } from './authService.js';
 
 // ✅ รายชื่อหน้าที่ไม่ต้องตรวจ login
-const PUBLIC_PAGES = ['/main.html', '/reset-password.html', '/index.html'];
+const PUBLIC_PAGES = ['/main.html', '/reset-password.html'];
 
 (async () => {
   const currentPath = window.location.pathname;
+  //console.log('[GUARD] Current path:', currentPath);
 
   // ถ้าเป็นหน้าสาธารณะ → ไม่ต้องเช็ค
   if (PUBLIC_PAGES.includes(currentPath)) return;
@@ -28,6 +29,12 @@ const PUBLIC_PAGES = ['/main.html', '/reset-password.html', '/index.html'];
 
     // 🔒 ถ้าเป็น user ปกติ แต่เข้า admin → กลับ my-plans
     if (!(user.is_super_user || user.is_staff_user) && currentPath === '/admin.html') {
+      window.location.href = '/my-plans.html';
+      return;
+    }
+
+    // ✅ ถ้า login แล้วแต่เปิดหน้า index.html → ไปหน้า my-plans.html
+    if (currentPath === '/') {
       window.location.href = '/my-plans.html';
       return;
     }

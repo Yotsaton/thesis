@@ -409,7 +409,7 @@ export async function renderMapMarkersAndRoute(): Promise<void> {
           const path = geometry.coordinates.map(([lng, lat]: [number, number]) => ({ lng, lat }));
           const line = new google.maps.Polyline({
             path,
-            strokeColor: '#888',
+            strokeColor: '#FF0000',
             strokeOpacity: 0.65,
             strokeWeight: 3,
             map,
